@@ -1,0 +1,9 @@
+﻿*.d
+*.o
+*.ld
+*.sct
+*.hex
+*.map
+*.elf
+*.ind
+*.asm
