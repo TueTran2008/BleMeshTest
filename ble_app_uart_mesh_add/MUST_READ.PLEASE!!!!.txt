@@ -1,0 +1,2 @@
+Add this folder (ble_app_uart_mesh_add) to {SDK_ROOT}/examples/ble_peripheral 
+Then Compiles :D it must be work 
