@@ -84,7 +84,7 @@
 
 
 /*user Include */
-//#include "user_input.h"
+#include "user_input.h"
 //#include "led_driver.h"
 //#include "user_on_off_client.h"
 /* Mesh */
@@ -92,6 +92,7 @@
 #include "mesh_adv.h"
 #include "ble_config.h"
 #include "ble_softdevice_support.h"
+#include "app_sef_provision.h"
 #define MESH_SOC_OBSERVER_PRIO 0
 
 
@@ -452,7 +453,7 @@ NRF_SDH_SOC_OBSERVER(m_mesh_soc_observer, MESH_SOC_OBSERVER_PRIO, mesh_soc_evt_h
  */
 //static void 
 
-ble_uart_stack_init(void)
+void ble_uart_stack_init(void)
 {
     ret_code_t err_code;
 
@@ -737,7 +738,7 @@ int main(void)
     // Initialize.
     uart_init();
     log_nrf_init();
-    __LOG_INIT(LOG_SRC_APP | LOG_SRC_ACCESS | LOG_SRC_BEARER |LOG_SRC_NETWORK | LOG_SRC_TRANSPORT|LOG_SRC_FSM, LOG_LEVEL_INFO, LOG_CALLBACK_DEFAULT);
+    __LOG_INIT(LOG_SRC_APP | LOG_SRC_ACCESS, LOG_LEVEL_INFO, LOG_CALLBACK_DEFAULT);
     __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "----- BLE Mesh Light Switch Client Demo -----\n");
     timers_init();
     //buttons_leds_init(&erase_bonds);
@@ -751,14 +752,15 @@ int main(void)
     advertising_init();
     conn_ble_params_init();
     //conn_params_init();
-    
     ble_mesh_stack_initialize();
     // Start execution.
     printf("\r\nUART started.\r\n");
     NRF_LOG_INFO("Debug logging for UART over RTT started.");
     advertising_start();
     ble_mesh_start();
+    app_self_provision(m_client.model_handle);
     NRF_LOG_INFO("MESH_STACK_HAS START");
+    rtt_input_init();
     for (;;)
     // Enter main loop.
     {
