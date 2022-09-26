@@ -177,16 +177,6 @@
     <folder Name="Mesh_stack">
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/stack/src/mesh_stack.c" />
     </folder>
-    <folder Name="Mesh_Common">
-      <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/common/src/assertion_handler_weak.c" />
-      <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/common/src/mesh_provisionee.c" />
-      <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/common/src/mesh_adv.c" />
-      <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/common/src/mesh_app_utils.c" />
-      <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/common/src/nrf_mesh_weak.c" />
-      <file file_name="../../../../../../components/Mesh/mesh_sdk/models/model_spec/common/src/model_common.c" />
-      <file file_name="../../../../../../components/Mesh/mesh_sdk/models/model_spec/common/src/model_config_file.c" />
-      <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/common/src/ble_softdevice_support.c" />
-    </folder>
     <folder Name="Mesh_Core">
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/aes.c" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/aes_cmac.c" />
@@ -214,7 +204,6 @@
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/long_timer.c" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/lpn.c" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/mesh_config.c" />
-      <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/mesh_config_backend.c" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/mesh_config_flashman_glue.c" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/mesh_flash.c" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/mesh_lpn_subman.c" />
@@ -242,6 +231,7 @@
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/timeslot_timer.c" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/toolchain.c" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/transport.c" />
+      <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/mesh_config_backend.c" />
     </folder>
     <folder Name="Sources">
       <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/user_liight_switch/Source/ble_config.c" />
@@ -252,6 +242,9 @@
       <file file_name="../../../self_provision/app_sefl_provision.c" />
       <file file_name="app_sef_provision.h" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/common/src/rtt_input.c" />
+      <file file_name="../../../Source/custom_uart_service.c" />
+      <file file_name="../../../Source/DataDefine.h" />
+      <file file_name="../../../Source/flash_if.c" />
     </folder>
     <folder Name="Mesh_Proxy">
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/gatt/src/mesh_gatt.c" />
@@ -266,6 +259,16 @@
       <file file_name="../../../../../../components/Mesh/mesh_sdk/external/micro-ecc/uECC.c" />
     </folder>
     <folder Name="MESH_Other" />
+    <folder Name="Mesh_Common">
+      <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/common/src/assertion_handler_weak.c" />
+      <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/common/src/mesh_provisionee.c" />
+      <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/common/src/mesh_adv.c" />
+      <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/common/src/mesh_app_utils.c" />
+      <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/common/src/nrf_mesh_weak.c" />
+      <file file_name="../../../../../../components/Mesh/mesh_sdk/models/model_spec/common/src/model_common.c" />
+      <file file_name="../../../../../../components/Mesh/mesh_sdk/models/model_spec/common/src/model_config_file.c" />
+      <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/common/src/ble_softdevice_support.c" />
+    </folder>
   </project>
   <configuration
     Name="Release"

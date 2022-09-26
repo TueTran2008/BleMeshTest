@@ -1,42 +1,4 @@
-/**
- * Copyright (c) 2016 - 2021, Nordic Semiconductor ASA
- *
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form, except as embedded into a Nordic
- *    Semiconductor ASA integrated circuit in a product or a software update for
- *    such product, must reproduce the above copyright notice, this list of
- *    conditions and the following disclaimer in the documentation and/or other
- *    materials provided with the distribution.
- *
- * 3. Neither the name of Nordic Semiconductor ASA nor the names of its
- *    contributors may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- * 4. This software, with or without modification, must only be used with a
- *    Nordic Semiconductor ASA integrated circuit.
- *
- * 5. Any software provided in binary form under this license must not be reverse
- *    engineered, decompiled, modified and/or disassembled.
- *
- * THIS SOFTWARE IS PROVIDED BY NORDIC SEMICONDUCTOR ASA "AS IS" AND ANY EXPRESS
- * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY, NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL NORDIC SEMICONDUCTOR ASA OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
- * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
- * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- */
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -62,6 +24,8 @@
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 
+#include "user_input.h"
+
 /*user Include */
 #include "user_input.h"
 //#include "led_driver.h"
@@ -72,7 +36,11 @@
 #include "ble_config.h"
 #include "ble_softdevice_support.h"
 #include "app_sef_provision.h"
+#include "DataDefine.h"
+#include "app_sef_provision.h"
 #define MESH_SOC_OBSERVER_PRIO 0
+
+static bool m_is_device_privisioned = false;
 
 
 #define APP_BLE_CONN_CFG_TAG    1                                       /**< Tag that refers to the BLE stack configuration set with @ref sd_ble_cfg_set. The default tag is @ref BLE_CONN_CFG_TAG_DEFAULT. */
@@ -143,6 +111,12 @@ static void scan_start(void)
     //APP_ERROR_CHECK(ret);
 }
 
+static void scan_stop()
+{
+  //ret_code_t ret;
+  nrf_ble_scan_stop();
+  //APP_ERROR_CHECK(ret);
+}
 
 /**@brief Function for handling Scanning Module events.
  */
@@ -164,7 +138,7 @@ static void scan_evt_handler(scan_evt_t const * p_scan_evt)
               ble_gap_evt_connected_t const * p_connected =
                                p_scan_evt->params.connected.p_connected;
              // Scan is automatically stopped by the connection.
-             NRF_LOG_INFO("Connecting to target %02x%02x%02x%02x%02x%02x",
+             __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Connecting to target %02x%02x%02x%02x%02x%02x",
                       p_connected->peer_addr.addr[0],
                       p_connected->peer_addr.addr[1],
                       p_connected->peer_addr.addr[2],
@@ -176,7 +150,7 @@ static void scan_evt_handler(scan_evt_t const * p_scan_evt)
 
          case NRF_BLE_SCAN_EVT_SCAN_TIMEOUT:
          {
-             NRF_LOG_INFO("Scan timed out.");
+             __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Scan timed out.");
              scan_start();
          } break;
 
@@ -223,48 +197,7 @@ static void db_disc_handler(ble_db_discovery_evt_t * p_evt)
 }
 
 
-/**@brief Function for handling characters received by the Nordic UART Service (NUS).
- *
- * @details This function takes a list of characters of length data_len and prints the characters out on UART.
- *          If @ref ECHOBACK_BLE_UART_DATA is set, the data is sent back to sender.
- */
-static void ble_nus_chars_received_uart_print(uint8_t * p_data, uint16_t data_len)
-{
-    ret_code_t ret_val;
 
-    NRF_LOG_DEBUG("Receiving data.");
-    NRF_LOG_HEXDUMP_DEBUG(p_data, data_len);
-
-    for (uint32_t i = 0; i < data_len; i++)
-    {
-        do
-        {
-            ret_val = app_uart_put(p_data[i]);
-            if ((ret_val != NRF_SUCCESS) && (ret_val != NRF_ERROR_BUSY))
-            {
-                NRF_LOG_ERROR("app_uart_put failed for index 0x%04x.", i);
-                APP_ERROR_CHECK(ret_val);
-            }
-        } while (ret_val == NRF_ERROR_BUSY);
-    }
-    if (p_data[data_len-1] == '\r')
-    {
-        while (app_uart_put('\n') == NRF_ERROR_BUSY);
-    }
-    if (ECHOBACK_BLE_UART_DATA)
-    {
-        // Send data back to the peripheral.
-        do
-        {
-            ret_val = ble_nus_c_string_send(&m_ble_nus_c, p_data, data_len);
-            if ((ret_val != NRF_SUCCESS) && (ret_val != NRF_ERROR_BUSY))
-            {
-                NRF_LOG_ERROR("Failed sending NUS message. Error 0x%x. ", ret_val);
-                APP_ERROR_CHECK(ret_val);
-            }
-        } while (ret_val == NRF_ERROR_BUSY);
-    }
-}
 
 
 /**@brief   Function for handling app_uart events.
@@ -322,6 +255,61 @@ void uart_event_handle(app_uart_evt_t * p_event)
     }
 }
 
+/*Things do after connect*/
+void event_connected()
+{
+  //uint32_t ret_val;
+  //ret_val = ble_nus_c_string_send(&m_ble_nus_c, data_array, index);
+  //if ( (ret_val != NRF_ERROR_INVALID_STATE) && (ret_val != NRF_ERROR_RESOURCES) )
+  //{
+  //  APP_ERROR_CHECK(ret_val);
+  //}
+}
+/*
+  @brief: Check the packet send from Gateway is valid. If packet is valid => Ready to Self Provisioning
+          Request gateway info again if fail
+*/
+static mesh_network_info_t network_info;
+
+static void gateway_info_check_valid_packet(uint8_t *p_data, uint16_t lenght)
+{
+   uint32_t err_code = NRF_SUCCESS;
+   if(lenght == sizeof(mesh_network_info_t) && p_data != NULL)
+   {
+      
+      memcpy((void*)&network_info, (void*)p_data, sizeof(network_info));
+
+
+      //__LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Receiving data.");
+      __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO,"NETWORK_KEY:\r\n",network_info.net_key, 16);
+      __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO,"APPLICATION_KEY:\r\n",network_info.app_key, 16);
+      __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Unicast address:0x%04x\r\n", network_info.unicast_address.address_start + network_info.unicast_address.count);
+
+      app_self_provision(m_client.model_handle, network_info.app_key, network_info.net_key, network_info.unicast_address);
+      scan_stop();
+      m_is_device_privisioned = true;
+      err_code = ble_nus_c_string_send(&m_ble_nus_c, "DIS", strlen("DIS"));
+      if ( (err_code != NRF_ERROR_INVALID_STATE) && (err_code != NRF_ERROR_RESOURCES) )
+      {
+        APP_ERROR_CHECK(err_code);
+      }
+      err_code = sd_ble_gap_disconnect(m_ble_nus_c.conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+      if (err_code != NRF_ERROR_INVALID_STATE)
+      {
+        APP_ERROR_CHECK(err_code);
+      }
+   }
+   else
+   {
+      __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "Mesh network info parse fail\r\n",p_data, lenght);
+      /*Request again if fail to receive data*/
+      err_code = ble_nus_c_string_send(&m_ble_nus_c, "REQ", strlen("REQ")); 
+      if ( (err_code != NRF_ERROR_INVALID_STATE) && (err_code != NRF_ERROR_RESOURCES) )
+      {
+        APP_ERROR_CHECK(err_code);
+      }
+   }
+}
 
 /**@brief Callback handling Nordic UART Service (NUS) client events.
  *
@@ -339,22 +327,37 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
     switch (p_ble_nus_evt->evt_type)
     {
         case BLE_NUS_C_EVT_DISCOVERY_COMPLETE:
-            NRF_LOG_INFO("Discovery complete.");
+            __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Discovery complete\r\n");
+
             err_code = ble_nus_c_handles_assign(p_ble_nus_c, p_ble_nus_evt->conn_handle, &p_ble_nus_evt->handles);
             APP_ERROR_CHECK(err_code);
-
+            err_code = ble_nus_c_string_send(&m_ble_nus_c, "REQ", strlen("REQ"));
+            if ((err_code != NRF_SUCCESS) && (err_code != NRF_ERROR_BUSY))
+            {
+                __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Failed sending NUS message. Error 0x%x. ", err_code);
+                APP_ERROR_CHECK(err_code);
+            }
             err_code = ble_nus_c_tx_notif_enable(p_ble_nus_c);
             APP_ERROR_CHECK(err_code);
-            NRF_LOG_INFO("Connected to device with Nordic UART Service.");
+            __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Connected to device with Nordic UART Service.");
             break;
 
         case BLE_NUS_C_EVT_NUS_TX_EVT:
-            ble_nus_chars_received_uart_print(p_ble_nus_evt->p_data, p_ble_nus_evt->data_len);
+            //ble_nus_chars_received_uart_print(p_ble_nus_evt->p_data, p_ble_nus_evt->data_len);
+            gateway_info_check_valid_packet(p_ble_nus_evt->p_data, p_ble_nus_evt->data_len);
+
             break;
 
         case BLE_NUS_C_EVT_DISCONNECTED:
-            NRF_LOG_INFO("Disconnected.");
-            scan_start();
+            __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Disconnected.");
+            if(m_is_device_privisioned == false)
+            {
+              scan_start();
+            }
+            else
+            {
+              scan_stop();
+            }
             break;
     }
 }
@@ -406,10 +409,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
         case BLE_GAP_EVT_CONNECTED:
             err_code = ble_nus_c_handles_assign(&m_ble_nus_c, p_ble_evt->evt.gap_evt.conn_handle, NULL);
             APP_ERROR_CHECK(err_code);
-
-            err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
-            APP_ERROR_CHECK(err_code);
-
+            __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"BLE Gap Event Connected\r\n");
             // start discovery of services. The NUS Client waits for a discovery result
             err_code = ble_db_discovery_start(&m_db_disc, p_ble_evt->evt.gap_evt.conn_handle);
             APP_ERROR_CHECK(err_code);
@@ -417,7 +417,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 
         case BLE_GAP_EVT_DISCONNECTED:
 
-            NRF_LOG_INFO("Disconnected. conn_handle: 0x%x, reason: 0x%x",
+            __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Disconnected. conn_handle: 0x%x, reason: 0x%x",
                          p_gap_evt->conn_handle,
                          p_gap_evt->params.disconnected.reason);
             break;
@@ -444,7 +444,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 
         case BLE_GAP_EVT_PHY_UPDATE_REQUEST:
         {
-            NRF_LOG_DEBUG("PHY update request.");
+            __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"PHY update request.");
             ble_gap_phys_t const phys =
             {
                 .rx_phys = BLE_GAP_PHY_AUTO,
@@ -464,7 +464,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 
         case BLE_GATTS_EVT_TIMEOUT:
             // Disconnect on GATT Server timeout event.
-            NRF_LOG_DEBUG("GATT Server Timeout.");
+            __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"GATT Server Timeout.");
             err_code = sd_ble_gap_disconnect(p_ble_evt->evt.gatts_evt.conn_handle,
                                              BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
             APP_ERROR_CHECK(err_code);
@@ -474,6 +474,10 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
             break;
     }
 }
+
+/**@brief Function for hand Mesh Events
+ *
+ */
 static void mesh_soc_evt_handler(uint32_t evt_id, void * p_context)
 {
     nrf_mesh_on_sd_evt(evt_id);
@@ -678,6 +682,7 @@ int main(void)
     log_nrf_init();
     __LOG_INIT(LOG_SRC_APP | LOG_SRC_ACCESS, LOG_LEVEL_INFO, LOG_CALLBACK_DEFAULT);
     __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "----- TUE MESH UART CENTRAL COMPOSITE-----\n");
+    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "----- TUE MESH UART CENTRAL COMPOSITE-----\n");
     timer_nrf_init();
     uart_init();
     //buttons_leds_init();
@@ -693,7 +698,7 @@ int main(void)
     ///NRF_LOG_INFO("BLE UART central example started.");
     scan_start();
     ble_mesh_start();
-
+    rtt_input_init(NULL);
     // Enter main loop.
     for (;;)
     {

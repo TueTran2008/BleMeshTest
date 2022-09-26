@@ -2,9 +2,6 @@
 <session>
  <Bookmarks/>
  <Breakpoints groups="Breakpoints" active_group="Breakpoints">
-  <BreakpointListItem trigger="" line="76" counter="0" hardwareBreakpoint="" isFunctionBreakpoint="false" action="" expression="" group="Breakpoints" type="Breakpoint" state="2" filename="../../../../../../components/libraries/util/app_error_weak.c" useHWbreakpoint="false"/>
-  <BreakpointListItem trigger="" line="77" counter="0" hardwareBreakpoint="" isFunctionBreakpoint="false" action="" expression="" group="Breakpoints" type="Breakpoint" state="2" filename="../../../../../../components/libraries/util/app_error_weak.c" useHWbreakpoint="false"/>
-  <BreakpointListItem trigger="" line="85" counter="0" hardwareBreakpoint="" isFunctionBreakpoint="false" action="" expression="" group="Breakpoints" type="Breakpoint" state="2" filename="../../../../../../components/libraries/util/app_error_weak.c" useHWbreakpoint="false"/>
   <Exceptions set="MemManage;UsageFault_Coprocessor;UsageFault_CheckingError;UsageFault_StateError;BusFault;ExceptionEntryReturnFault;HardFault"/>
  </Breakpoints>
  <ExecutionProfileWindow/>
@@ -27,13 +24,8 @@
   <ProjectSessionItem path="ble_app_uart_pca10040_s132"/>
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132"/>
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;Application"/>
-  <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;Board Definition"/>
-  <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;Mesh_Core"/>
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;MESH_Other"/>
-  <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;nRF_BLE"/>
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;nRF_BLE_Services"/>
-  <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;nRF_Drivers"/>
-  <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;nRF_Libraries"/>
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;Sources"/>
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;UTF8/UTF16 converter"/>
  </Project>
@@ -59,6 +51,8 @@
   <Watches active="1" update="Never">
    <Watchpoint expression="app_ram_base" name="app_ram_base" radix="-1" linenumber="176" filename="../../../../../../components/Mesh/mesh_sdk/examples/common/src/ble_softdevice_support.c"/>
    <Watchpoint expression="m_status" name="m_status" radix="-1" linenumber="1847" filename="../../../../../../components/Mesh/mesh_sdk/mesh/access/src/device_state_manager.c"/>
+   <Watchpoint expression="network_info" name="network_info" radix="16" linenumber="280" filename="../../../main.c"/>
+   <Watchpoint expression="m_start_unicast_add" name="m_start_unicast_add" radix="-1" linenumber="80" filename="../../../self_provision/app_sefl_provision.c"/>
   </Watches>
  </Watch1>
  <Watch2>
@@ -71,7 +65,34 @@
   <Watches active="0" update="Never"/>
  </Watch4>
  <Files>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="685" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../main.c" selected="0" top="671" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="283" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../main.c" selected="1" top="264" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="99" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/libraries/util/app_error_weak.c" selected="0" top="65" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="666" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_node_add/main.c" useBinaryEdit="0" left="0" path="../../../../../../components/ble/nrf_ble_scan/nrf_ble_scan.c" selected="0" top="666" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="12064" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../config/sdk_config.h" selected="0" top="12013" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="60" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/external/micro-ecc/asm_arm.inc" selected="0" top="40" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="357" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/softdevice/common/nrf_sdh.c" selected="0" top="334" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="2624" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/softdevice/s132/headers/ble_gap.h" selected="0" top="2604" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="308" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/softdevice/common/nrf_sdh_ble.c" selected="0" top="288" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="148" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/mesh/prov/src/nrf_mesh_prov.c" selected="0" top="128" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="229" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/mesh/prov/src/prov_utils.c" selected="0" top="209" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="42" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/libraries/util/app_error_handler_gcc.c" selected="0" top="28" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="371" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_node_add/main.c" useBinaryEdit="0" left="0" path="../../../../../../components/ble/nrf_ble_gatt/nrf_ble_gatt.c" selected="0" top="351" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="883" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_node_add/main.c" useBinaryEdit="0" left="0" path="../../../../../../components/ble/ble_db_discovery/ble_db_discovery.c" selected="0" top="869" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="143" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_node_add/main.c" useBinaryEdit="0" left="0" path="../../../../../../components/ble/ble_services/ble_nus_c/ble_nus_c.c" selected="0" top="143" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="209" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/toolchain/cmsis/include/cmsis_gcc.h" selected="0" top="188" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="734" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/libraries/log/src/nrf_log_frontend.c" selected="0" top="712" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="230" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/libraries/log/nrf_log_backend_interface.h" selected="0" top="228" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="115" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/libraries/log/src/nrf_log_backend_rtt.c" selected="0" top="93" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/flash_manager_internal.c" selected="0" top="36" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="14" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_node_add/main.c" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/examples/user_liight_switch/include/DataDefine.h" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="7" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_node_add/main.c" useBinaryEdit="0" left="0" path="../../../../ble_app_uart_mesh_add/self_provision/app_sef_provision.h" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="131" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_node_add/main.c" useBinaryEdit="0" left="0" path="../../../self_provision/app_sefl_provision.c" selected="0" top="94" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="6" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_node_add/self_provision/app_sefl_provision.c" useBinaryEdit="0" left="0" path="../../../self_provision/app_sef_provision.h" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="22" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_node_add/main.c" useBinaryEdit="0" left="0" path="../../../../../../components/libraries/util/app_error.h" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="266" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_node_add/main.c" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/examples/user_liight_switch/Source/ble_config.c" selected="0" top="211" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/examples/user_liight_switch/client/include/nrf_mesh_config_app.h" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/examples/user_liight_switch/client/include/app_config.h" selected="0" top="51" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="app_sef_provision.h" selected="0" top="0" codecName="Default"/>
  </Files>
- <ARMCrossStudioWindow activeProject="ble_app_uart_pca10040_s132" fileDialogDefaultFilter="*.c;*.cpp;*.cxx;*.cc;*.h;*.hpp;*.hxx" autoConnectTarget="J-Link" buildConfiguration="Debug" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/components/libraries/queue" debugSearchPath="" autoConnectCapabilities="3711"/>
+ <ARMCrossStudioWindow activeProject="ble_app_uart_pca10040_s132" fileDialogDefaultFilter="*.c;*.cpp;*.cxx;*.cc;*.h;*.hpp;*.hxx" autoConnectTarget="J-Link" buildConfiguration="Debug" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/components/libraries/queue" debugSearchPath="" autoConnectCapabilities="3199"/>
 </session>

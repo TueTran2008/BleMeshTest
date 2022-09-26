@@ -7,7 +7,7 @@
 #include "config_server.h"
 #include "ble_config.h"
 #include "access_config.h"
-
+#include "app_sef_provision.h"
 
 #define LOCAL_ADDRESS_START 0x0060
 #define GROUP_ADDRESS 0xC001
@@ -55,7 +55,7 @@ static dsm_handle_t m_group_addres_handle;
 
 
 
-const static dsm_local_unicast_address_t m_start_unicast_add = {
+static dsm_local_unicast_address_t m_start_unicast_add = {
   .address_start = LOCAL_ADDRESS_START,
   .count = ACCESS_ELEMENT_COUNT
  };
@@ -72,12 +72,15 @@ const static dsm_local_unicast_address_t m_start_unicast_add = {
  @brief: Set Unicast address
          devkey index must be equal to start unicast address
 */
-static void self_provision()
+static void self_provision(uint8_t *p_app_key, uint8_t *p_netkey, dsm_local_unicast_address_t start_unicast_add)
 {
    ret_code_t err_code = NRF_SUCCESS;
+   memcpy(&provision_data.netkey, p_netkey, sizeof(provision_data.netkey));
 
+   m_start_unicast_add.address_start = start_unicast_add.address_start;
+   m_start_unicast_add.count = start_unicast_add.count + 1;
 
-
+   provision_data.address = m_start_unicast_add.address_start;
   /*Set the Unicast Address of Gateway*/
    err_code = dsm_local_unicast_addresses_set(&m_start_unicast_add);
    APP_ERROR_CHECK(err_code);
@@ -86,6 +89,7 @@ static void self_provision()
    err_code = dsm_subnet_add(provision_data.iv_index, provision_data.netkey, &m_subnet_handle);
    APP_ERROR_CHECK(err_code);
 
+
    //err_code = net_state_iv_index_set(0,0);
    //APP_ERROR_CHECK(err_code);
    //
@@ -93,7 +97,8 @@ static void self_provision()
    err_code = dsm_devkey_add(m_start_unicast_add.address_start, m_subnet_handle, m_dev_key, &m_devkey_handle);
    APP_ERROR_CHECK(err_code);
    /*Add App Key*/
-   err_code = dsm_appkey_add(APP_KEY_INDEX, m_subnet_handle, m_app_key, &m_appkey_handle);
+   err_code = dsm_appkey_add(APP_KEY_INDEX, m_subnet_handle, p_app_key, &m_appkey_handle);
+   provision_data.netkey_index++;
    APP_ERROR_CHECK(err_code);
    /*Add Dev Key*/
 
@@ -129,8 +134,10 @@ static void subcribe_topic(access_model_handle_t model)
 
 /*
 */
-void app_self_provision(access_model_handle_t model_handle)
+void app_self_provision(access_model_handle_t model_handle,
+                        int8_t *p_app_key, uint8_t *p_netkey, 
+                        dsm_local_unicast_address_t m_start_unicast_add)
 {
-  self_provision();
+  self_provision(p_app_key, p_netkey, m_start_unicast_add);
   subcribe_topic(model_handle);
 }

@@ -80,7 +80,7 @@
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
-
+#include <string.h>
 
 
 /*user Include */
@@ -93,6 +93,7 @@
 #include "ble_config.h"
 #include "ble_softdevice_support.h"
 #include "app_sef_provision.h"
+#include "DataDefine.h"
 #define MESH_SOC_OBSERVER_PRIO 0
 
 
@@ -126,13 +127,15 @@ NRF_BLE_GATT_DEF(m_gatt);                                                       
 NRF_BLE_QWR_DEF(m_qwr);                                                             /**< Context for the Queued Write module.*/
 BLE_ADVERTISING_DEF(m_advertising);                                                 /**< Advertising module instance. */
 
+static uint8_t    m_adv_handle           = BLE_GAP_ADV_SET_HANDLE_NOT_SET;    
 static uint16_t   m_conn_handle          = BLE_CONN_HANDLE_INVALID;                 /**< Handle of the current connection. */
 static uint16_t   m_ble_nus_max_data_len = BLE_GATT_ATT_MTU_DEFAULT - 3;            /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
 static ble_uuid_t m_adv_uuids[]          =                                          /**< Universally unique service identifier. */
 {
     {BLE_UUID_NUS_SERVICE, NUS_SERVICE_UUID_TYPE}
 };
-
+static void node_nus_data_handler(ble_nus_evt_t *p_evt);
+static void advertising_stop();
 
 /**@brief Function for assert macro callback.
  *
@@ -258,7 +261,8 @@ static void services_init(void)
     // Initialize NUS.
     memset(&nus_init, 0, sizeof(nus_init));
 
-    nus_init.data_handler = nus_data_handler;
+    /*nus_init.data_handler = nus_data_handler;*/
+    nus_init.data_handler = node_nus_data_handler;
 
     err_code = ble_nus_init(&m_nus, &nus_init);
     APP_ERROR_CHECK(err_code);
@@ -279,7 +283,6 @@ static void services_init(void)
 static void on_conn_params_evt(ble_conn_params_evt_t * p_evt)
 {
     uint32_t err_code;
-
     if (p_evt->evt_type == BLE_CONN_PARAMS_EVT_FAILED)
     {
         err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_CONN_INTERVAL_UNACCEPTABLE);
@@ -315,6 +318,7 @@ static void conn_ble_params_init(void)
     cp_init.disconnect_on_fail             = false;
     cp_init.evt_handler                    = on_conn_params_evt;
     cp_init.error_handler                  = conn_params_error_handler;
+    
 
     err_code = ble_conn_params_init(&cp_init);
     __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "BLE CONN PARAMS INIT ErrorCode: 0x%02x\r\n", err_code);
@@ -378,9 +382,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
     switch (p_ble_evt->header.evt_id)
     {
         case BLE_GAP_EVT_CONNECTED:
-            NRF_LOG_INFO("Connected");
-            err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
-            APP_ERROR_CHECK(err_code);
+            __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"BLE_Connected\r\n");
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             err_code = nrf_ble_qwr_conn_handle_assign(&m_qwr, m_conn_handle);
             APP_ERROR_CHECK(err_code);
@@ -388,6 +390,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 
         case BLE_GAP_EVT_DISCONNECTED:
             NRF_LOG_INFO("Disconnected");
+            __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"BLE Disconnected\r\n");
             // LED indication will be changed when advertising starts.
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
             break;
@@ -412,12 +415,14 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 
         case BLE_GATTS_EVT_SYS_ATTR_MISSING:
             // No system attributes have been stored.
+            
             err_code = sd_ble_gatts_sys_attr_set(m_conn_handle, NULL, 0, 0);
             APP_ERROR_CHECK(err_code);
             break;
 
         case BLE_GATTC_EVT_TIMEOUT:
-            // Disconnect on GATT Client timeout event.
+            // Disconnect 
+            __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"BLE Disconnected on GATT Client timeout event.\r\n");
             err_code = sd_ble_gap_disconnect(p_ble_evt->evt.gattc_evt.conn_handle,
                                              BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
             APP_ERROR_CHECK(err_code);
@@ -425,6 +430,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 
         case BLE_GATTS_EVT_TIMEOUT:
             // Disconnect on GATT Server timeout event.
+            __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"BLE Disconnected on GATT Server timeout event.\r\n");
             err_code = sd_ble_gap_disconnect(p_ble_evt->evt.gatts_evt.conn_handle,
                                              BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
             APP_ERROR_CHECK(err_code);
@@ -472,8 +478,6 @@ void ble_uart_stack_init(void)
 
     // Register a handler for BLE events.
     NRF_SDH_BLE_OBSERVER(m_ble_observer, APP_BLE_OBSERVER_PRIO, ble_evt_handler, NULL);
-    
-    //NRF_SDH_SOC_OBSERVER(m_mesh_soc_observer, MESH_SOC_OBSERVER_PRIO, mesh_soc_evt_handler, NULL);
 }
 
 
@@ -504,42 +508,17 @@ void gatt_init(void)
 }
 
 
-/**@brief Function for handling events from the BSP module.
- *
- * @param[in]   event   Event generated by button press.
- */
+
 void bsp_event_handler(bsp_event_t event)
 {
-    uint32_t err_code;
-    switch (event)
-    {
-        case BSP_EVENT_SLEEP:
-            sleep_mode_enter();
-            break;
 
-        case BSP_EVENT_DISCONNECT:
-            err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
-            if (err_code != NRF_ERROR_INVALID_STATE)
-            {
-                APP_ERROR_CHECK(err_code);
-            }
-            break;
-
-        case BSP_EVENT_WHITELIST_OFF:
-            if (m_conn_handle == BLE_CONN_HANDLE_INVALID)
-            {
-                err_code = ble_advertising_restart_without_whitelist(&m_advertising);
-                if (err_code != NRF_ERROR_INVALID_STATE)
-                {
-                    APP_ERROR_CHECK(err_code);
-                }
-            }
-            break;
-
-        default:
-            break;
-    }
 }
+
+
+
+
+
+
 
 
 /**@brief   Function for handling app_uart events.
@@ -590,15 +569,77 @@ void uart_event_handle(app_uart_evt_t * p_event)
         case APP_UART_COMMUNICATION_ERROR:
             APP_ERROR_HANDLER(p_event->data.error_communication);
             break;
-
         case APP_UART_FIFO_ERROR:
             APP_ERROR_HANDLER(p_event->data.error_code);
             break;
-
         default:
             break;
     }
 }
+
+
+
+
+
+
+
+
+
+mesh_network_info_t gateway_info = {
+  .net_key = NET_KEY,
+  .app_key = APP_KEY,
+  .unicast_address = LOCAL_ADDRESS_START + 1
+};
+
+
+static bool m_is_node_request_data = false;
+
+static void node_nus_data_handler(ble_nus_evt_t *p_evt)
+{
+  uint32_t err_code = NRF_SUCCESS;
+  if(p_evt->type == BLE_NUS_EVT_RX_DATA)
+  {
+    mesh_network_info_t send_to_node = gateway_info;
+    send_to_node.unicast_address.count++;
+    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Received data from BLE NUS. Writing data on UART.");
+    __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO,"Data buffer:", p_evt->params.rx_data.p_data, p_evt->params.rx_data.length);
+    if(p_evt->params.rx_data.p_data && p_evt->params.rx_data.length)
+    {
+        if(strstr(p_evt->params.rx_data.p_data, "REQ"))
+        {
+          __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Slave is requesting gateway info--> Prepare to send\r\n");
+          m_is_node_request_data = true;
+        }
+        else if(strstr(p_evt->params.rx_data.p_data, "DIS"))
+        {
+          m_is_node_request_data = true;
+          //err_code = sd_ble_gap_disconnect(, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+          __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Slave received ok. Let's terminate connection\r\n");
+          //APP_ERROR_CHECK(err_code);
+          advertising_stop();
+        }
+    }
+  }
+  else if(p_evt->type == BLE_NUS_EVT_COMM_STARTED)
+  {
+    /**/
+    if(m_is_node_request_data)
+    {
+      uint16_t lenght = sizeof(mesh_network_info_t);
+      err_code = ble_nus_data_send(&m_nus, (uint8_t*)&gateway_info, &lenght, m_conn_handle);
+      NRF_LOG_INFO("Send gateway info through BLE CCCD\r\n");
+      if ((err_code != NRF_ERROR_INVALID_STATE) &&
+          (err_code != NRF_ERROR_RESOURCES) &&
+          (err_code != NRF_ERROR_NOT_FOUND))
+      {
+          __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Send nus data error: 0x%02x\r\n", err_code);
+          APP_ERROR_CHECK(err_code);
+      }
+    }
+  }
+}
+
+
 /**@snippet [Handling the data received over UART] */
 
 
@@ -655,6 +696,7 @@ static void advertising_init(void)
     init.config.ble_adv_fast_enabled  = true;
     init.config.ble_adv_fast_interval = APP_ADV_INTERVAL;
     init.config.ble_adv_fast_timeout  = APP_ADV_DURATION;
+    init.config.ble_adv_on_disconnect_disabled = true;
     init.evt_handler = on_adv_evt;
 
     err_code = ble_advertising_init(&m_advertising, &init);
@@ -664,22 +706,6 @@ static void advertising_init(void)
 }
 
 
-/**@brief Function for initializing buttons and leds.
- *
- * @param[out] p_erase_bonds  Will be true if the clear bonding button was pressed to wake the application up.
- */
-static void buttons_leds_init(bool * p_erase_bonds)
-{
-    bsp_event_t startup_event;
-
-    uint32_t err_code = bsp_init(BSP_INIT_LEDS | BSP_INIT_BUTTONS, bsp_event_handler);
-    APP_ERROR_CHECK(err_code);
-
-    err_code = bsp_btn_ble_init(NULL, &startup_event);
-    APP_ERROR_CHECK(err_code);
-
-    *p_erase_bonds = (startup_event == BSP_EVENT_CLEAR_BONDING_DATA);
-}
 
 
 /**@brief Function for initializing the nrf log module.
@@ -727,14 +753,22 @@ static void advertising_start(void)
     uint32_t err_code = ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST);
     APP_ERROR_CHECK(err_code);
 }
+/**@brief Function for stop advertising.
+ */
+static void advertising_stop()
+{
+    uint32_t err_code = sd_ble_gap_adv_stop(m_advertising.adv_handle);
+    APP_ERROR_CHECK(err_code);
+}
 
+
+extern void task_test_flash(void *p_args);
 
 /**@brief Application main function.
  */
 int main(void)
-{
+ {
     bool erase_bonds;
-
     // Initialize.
     uart_init();
     log_nrf_init();
@@ -754,13 +788,14 @@ int main(void)
     //conn_params_init();
     ble_mesh_stack_initialize();
     // Start execution.
-    printf("\r\nUART started.\r\n");
-    NRF_LOG_INFO("Debug logging for UART over RTT started.");
+    //printf("\r\nUART started.\r\n");
+    //NRF_LOG_INFO("Debug logging for UART over RTT started.");
     advertising_start();
     ble_mesh_start();
-    app_self_provision(m_client.model_handle);
-    NRF_LOG_INFO("MESH_STACK_HAS START");
-    rtt_input_init();
+    //app_self_provision(m_client.model_handle, gateway_info.app_key, gateway_info.net_key, gateway_info.unicast_address);
+    //NRF_LOG_INFO("MESH_STACK_HAS START");
+    //task_test_flash(NULL);
+    rtt_input_init(NULL);
     for (;;)
     // Enter main loop.
     {
