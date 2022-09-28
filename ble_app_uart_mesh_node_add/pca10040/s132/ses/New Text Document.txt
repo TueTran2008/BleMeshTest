@@ -1,0 +1,3 @@
+This project config for s140 softdevice
+board_0056.
+MUST CARE
