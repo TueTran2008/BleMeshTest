@@ -39,6 +39,9 @@
 #include "DataDefine.h"
 #include "app_sef_provision.h"
 #include "ble_uart_service_central.h"
+#include "user_on_off_server.h"
+#include "ble_advdata.h"
+
 #define MESH_SOC_OBSERVER_PRIO 0
 
 static bool m_is_device_privisioned = false;
@@ -64,7 +67,6 @@ NRF_BLE_GQ_DEF(m_ble_gatt_queue,                                        /**< BLE
                NRF_BLE_GQ_QUEUE_SIZE);
 
 static uint16_t m_ble_nus_max_data_len = BLE_GATT_ATT_MTU_DEFAULT - OPCODE_LENGTH - HANDLE_LENGTH; /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
-
 /**@brief NUS UUID. */
 static ble_uuid_t const m_nus_uuid =
 {
@@ -107,24 +109,21 @@ void scan_start(void)
 
     ret = nrf_ble_scan_start(&m_scan);
     APP_ERROR_CHECK(ret);
-
-    //ret = bsp_indication_set(BSP_INDICATE_SCANNING);
-    //APP_ERROR_CHECK(ret);
 }
 
 void scan_stop()
 {
-  //ret_code_t ret;
   nrf_ble_scan_stop();
-  //APP_ERROR_CHECK(ret);
 }
 
+extern adv_scan_data_t* nrf_ble_get_scan_plus_adv_buffer();
 /**@brief Function for handling Scanning Module events.
  */
 static void scan_evt_handler(scan_evt_t const * p_scan_evt)
 {
     ret_code_t err_code;
-
+    //scan_evt_debug = *p_scan_evt;
+    
     switch(p_scan_evt->scan_evt_id)
     {
          case NRF_BLE_SCAN_EVT_CONNECTING_ERROR:
@@ -154,10 +153,35 @@ static void scan_evt_handler(scan_evt_t const * p_scan_evt)
              __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Scan timed out.");
              scan_start();
          } break;
+         //p_scan_evt->params.filter_match.p_adv_report
+         
+         case NRF_BLE_SCAN_EVT_FILTER_MATCH:
+         {
+            uint8_t *p_manufacture_data = NULL;
+            adv_scan_data_t *p_adv_scan_data = nrf_ble_get_scan_plus_adv_buffer();
+           
+
+            //adv_debug = *(p_scan_evt->params.filter_match.p_adv_report);
+            __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Found Match Beacon\r\nRSSI%ddBm\r\nPeer Address:0x%08x\r\nData Direct Address:0x%08x\r\nData_ID:%d\r\n"
+                                                                         , p_scan_evt->params.filter_match.p_adv_report->rssi
+                                                                         , p_scan_evt->params.filter_match.p_adv_report->peer_addr
+                                                                         , p_scan_evt->params.filter_match.p_adv_report->direct_addr
+                                                                         , p_scan_evt->params.filter_match.p_adv_report->data_id
+                                                                         );
+             __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "\r\nFilter Match Data Packet", p_adv_scan_data->data_buffer, p_adv_scan_data->index);
+             /*Let's get beacon data :D*/
+             uint16_t offset;
+             uint16_t len;
+             len = ble_advdata_search(p_adv_scan_data->data_buffer,  p_adv_scan_data->index, &offset,BLE_GAP_AD_TYPE_MANUFACTURER_SPECIFIC_DATA);
+             p_manufacture_data = &p_adv_scan_data->data_buffer[offset];
+             __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "\r\n Manufacture Specific Data", p_manufacture_data, len);
+         }
+         break;
 
          default:
              break;
     }
+    //__LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "Scan data", p_scan_evt->params.p_whitelist_adv_report);
 }
 
 
@@ -169,17 +193,19 @@ static void scan_init(void)
     nrf_ble_scan_init_t init_scan;
 
     memset(&init_scan, 0, sizeof(init_scan));
-
-    init_scan.connect_if_match = true;
+    /*Already have scan request*/
+    init_scan.connect_if_match = false;
     init_scan.conn_cfg_tag     = APP_BLE_CONN_CFG_TAG;
+    //init_scan.p_scan_param->active = 0x01;
+    
 
     err_code = nrf_ble_scan_init(&m_scan, &init_scan, scan_evt_handler);
     APP_ERROR_CHECK(err_code);
-
-    err_code = nrf_ble_scan_filter_set(&m_scan, SCAN_UUID_FILTER, &m_nus_uuid);
+    uint8_t name_string[] = "TPMS4";
+    err_code = nrf_ble_scan_filter_set(&m_scan, SCAN_NAME_FILTER, name_string);
     APP_ERROR_CHECK(err_code);
 
-    err_code = nrf_ble_scan_filters_enable(&m_scan, NRF_BLE_SCAN_UUID_FILTER, false);
+    err_code = nrf_ble_scan_filters_enable(&m_scan, NRF_BLE_SCAN_NAME_FILTER, false);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -209,62 +235,11 @@ static void db_disc_handler(ble_db_discovery_evt_t * p_evt)
  */
 void uart_event_handle(app_uart_evt_t * p_event)
 {
-    static uint8_t data_array[BLE_NUS_MAX_DATA_LEN];
-    static uint16_t index = 0;
-    uint32_t ret_val;
-
-    switch (p_event->evt_type)
-    {
-        /**@snippet [Handling data from UART] */
-        case APP_UART_DATA_READY:
-            UNUSED_VARIABLE(app_uart_get(&data_array[index]));
-            index++;
-
-            if ((data_array[index - 1] == '\n') ||
-                (data_array[index - 1] == '\r') ||
-                (index >= (m_ble_nus_max_data_len)))
-            {
-                NRF_LOG_DEBUG("Ready to send data over BLE NUS");
-                NRF_LOG_HEXDUMP_DEBUG(data_array, index);
-
-                do
-                {
-                    ret_val = ble_nus_c_string_send(&m_ble_nus_c, data_array, index);
-                    if ( (ret_val != NRF_ERROR_INVALID_STATE) && (ret_val != NRF_ERROR_RESOURCES) )
-                    {
-                        APP_ERROR_CHECK(ret_val);
-                    }
-                } while (ret_val == NRF_ERROR_RESOURCES);
-
-                index = 0;
-            }
-            break;
-
-        /**@snippet [Handling data from UART] */
-        case APP_UART_COMMUNICATION_ERROR:
-            NRF_LOG_ERROR("Communication error occurred while handling UART.");
-            APP_ERROR_HANDLER(p_event->data.error_communication);
-            break;
-
-        case APP_UART_FIFO_ERROR:
-            NRF_LOG_ERROR("Error occurred in FIFO module used by UART.");
-            APP_ERROR_HANDLER(p_event->data.error_code);
-            break;
-
-        default:
-            break;
-    }
 }
 
 /*Things do after connect*/
 void event_connected()
 {
-  //uint32_t ret_val;
-  //ret_val = ble_nus_c_string_send(&m_ble_nus_c, data_array, index);
-  //if ( (ret_val != NRF_ERROR_INVALID_STATE) && (ret_val != NRF_ERROR_RESOURCES) )
-  //{
-  //  APP_ERROR_CHECK(ret_val);
-  //}
 }
 /*
   @brief: Check the packet send from Gateway is valid. If packet is valid => Ready to Self Provisioning
@@ -285,7 +260,7 @@ static void gateway_info_check_valid_packet(uint8_t *p_data, uint16_t lenght)
       __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO,"NETWORK_KEY:\r\n",network_info.net_key, 16);
       __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO,"APPLICATION_KEY:\r\n",network_info.app_key, 16);
       __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Unicast address:0x%04x\r\n", network_info.unicast_address.address_start);
-      app_self_provision(m_client.model_handle, network_info.app_key, network_info.net_key, network_info.unicast_address);
+      app_self_provision(m_server.model_handle, network_info.app_key, network_info.net_key, network_info.unicast_address);
       
       scan_stop();
       m_is_device_privisioned = true;
@@ -330,7 +305,7 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
     {
         case BLE_NUS_C_EVT_DISCOVERY_COMPLETE:
             __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Discovery complete\r\n");
-
+            
             err_code = ble_nus_c_handles_assign(p_ble_nus_c, p_ble_nus_evt->conn_handle, &p_ble_nus_evt->handles);
             APP_ERROR_CHECK(err_code);
             err_code = ble_nus_c_string_send(&m_ble_nus_c, "REQ", strlen("REQ"));
@@ -405,6 +380,8 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 {
     ret_code_t            err_code;
     ble_gap_evt_t const * p_gap_evt = &p_ble_evt->evt.gap_evt;
+    /**/
+    //nrf_ble_scan_on_ble_evt(p_ble_evt, &m_scan);
 
     switch (p_ble_evt->header.evt_id)
     {
@@ -470,6 +447,18 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
             err_code = sd_ble_gap_disconnect(p_ble_evt->evt.gatts_evt.conn_handle,
                                              BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
             APP_ERROR_CHECK(err_code);
+            break;
+        case BLE_GAP_EVT_ADV_REPORT:
+
+            //adv_debug = (p_gap_evt->params.adv_report);
+           // adv_packet = (p_gap_evt->params.adv_report);
+            //__LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Receive beacon Packet:\r\nRSSI%ddBm\r\nPeer Address:0x%08x\r\nData Direct Address:0x%08x\r\nData_ID:%d"
+                                                                         //, p_gap_evt->params.adv_report.rssi
+                                                                         //, p_gap_evt->params.adv_report.peer_addr
+                                                                         //, p_gap_evt->params.adv_report.direct_addr
+                                                                         //, p_gap_evt->params.adv_report.data_id
+                                                                         //);
+            __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "Data Packet", p_gap_evt->params.adv_report.data.p_data, p_gap_evt->params.adv_report.data.len);
             break;
 
         default:
@@ -537,35 +526,6 @@ void gatt_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
-
-/**@brief Function for handling events from the BSP module.
- *
- * @param[in] event  Event generated by button press.
- */
-void bsp_event_handler(bsp_event_t event)
-{
-    ret_code_t err_code;
-
-    switch (event)
-    {
-        case BSP_EVENT_SLEEP:
-            nrf_pwr_mgmt_shutdown(NRF_PWR_MGMT_SHUTDOWN_GOTO_SYSOFF);
-            break;
-
-        case BSP_EVENT_DISCONNECT:
-            err_code = sd_ble_gap_disconnect(m_ble_nus_c.conn_handle,
-                                             BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
-            if (err_code != NRF_ERROR_INVALID_STATE)
-            {
-                APP_ERROR_CHECK(err_code);
-            }
-            break;
-
-        default:
-            break;
-    }
-}
-
 /**@brief Function for initializing the UART. */
 static void uart_init(void)
 {
@@ -605,30 +565,12 @@ static void nus_c_init(void)
     err_code = ble_nus_c_init(&m_ble_nus_c, &init);
     APP_ERROR_CHECK(err_code);
 }
-
-
-/**@brief Function for initializing buttons and leds. */
-static void buttons_leds_init(void)
-{
-    ret_code_t err_code;
-    bsp_event_t startup_event;
-
-    err_code = bsp_init(BSP_INIT_LEDS, bsp_event_handler);
-    APP_ERROR_CHECK(err_code);
-
-    err_code = bsp_btn_ble_init(NULL, &startup_event);
-    APP_ERROR_CHECK(err_code);
-}
-
-
 /**@brief Function for initializing the timer. */
 static void timer_nrf_init(void)
 {
     ret_code_t err_code = app_timer_init();
     APP_ERROR_CHECK(err_code);
 }
-
-
 /**@brief Function for initializing the nrf log module. */
 static void log_nrf_init(void)
 {
@@ -679,18 +621,85 @@ static void idle_state_handle(void)
 
 void ble_uart_service_central_init()
 {
-    log_nrf_init();
-    __LOG_INIT(LOG_SRC_APP | LOG_SRC_ACCESS, LOG_LEVEL_INFO, LOG_CALLBACK_DEFAULT);
+    __LOG_INIT(LOG_SRC_APP | LOG_SRC_TRANSPORT, LOG_LEVEL_INFO | LOG_LEVEL_DBG1 | LOG_LEVEL_DBG3, LOG_CALLBACK_DEFAULT);
     __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "----- TUE MESH UART CENTRAL COMPOSITE-----\n");
     //__LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "----- TUE MESH UART CENTRAL COMPOSITE-----\n");
     timer_nrf_init();
     uart_init();
-    //buttons_leds_init();
     db_discovery_init();
-    //power_management_init();
     ble_uart_stack_init();
     gatt_init();
     nus_c_init();
     scan_init();
-    //scan_start();
+}
+
+
+
+
+static bool ble_advdata_name_part_find(uint8_t const * p_encoded_data,
+                           uint16_t        data_len,
+                           char    const * p_target_name)
+{
+    uint16_t        parsed_name_len;
+    uint8_t const * p_parsed_name;
+    uint16_t        data_offset          = 0;
+
+    if (p_target_name == NULL)
+    {
+        return false;
+    }
+
+
+    parsed_name_len = ble_advdata_search(p_encoded_data,
+                                         data_len,
+                                         &data_offset,
+                                         BLE_GAP_AD_TYPE_COMPLETE_LOCAL_NAME);
+
+    p_parsed_name = &p_encoded_data[data_offset];
+    //__LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Parse name:%s\r\n", p_parsed_name);
+
+    if (   (data_offset != 0)
+        && (parsed_name_len != 0)
+        /*&& (strlen(p_target_name) == parsed_name_len)*/
+        /*&& (memcmp(p_target_name, p_parsed_name, parsed_name_len) == 0)*/
+        && (memcmp(p_target_name, p_parsed_name, strlen(p_target_name)) == 0))
+    {
+        __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "Complete Name", p_parsed_name, parsed_name_len);
+        return true;
+    }
+
+    return false;
+}
+
+/** @brief Function for comparing the provided name with the advertised name.
+ *
+ * @param[in] p_adv_rp    Advertising data to parse.
+ * @param[in] p_scan_ctx      Pointer to the Scanning Module instance.
+ *
+ * @retval True when the names match. False otherwise.
+ */
+
+bool advdata_part_name_find(ble_gap_evt_adv_report_t const * p_adv_rp,
+                                   nrf_ble_scan_t     const * const p_scan_ctx)
+{
+    nrf_ble_scan_name_filter_t const * p_name_filter = &p_scan_ctx->scan_filters.name_filter;
+    uint8_t                            counter       =
+        p_scan_ctx->scan_filters.name_filter.name_cnt;
+    uint8_t  index;
+    uint16_t data_len;
+
+    data_len = p_adv_rp->data.len;
+
+    // Compare the name found with the name filter.
+    for (index = 0; index < counter; index++)
+    {
+        if (ble_advdata_name_part_find(p_adv_rp->data.p_data,
+                                  data_len,
+                                  p_name_filter->target_name[index]))
+        {
+            return true;
+        }
+    }
+
+    return false;
 }

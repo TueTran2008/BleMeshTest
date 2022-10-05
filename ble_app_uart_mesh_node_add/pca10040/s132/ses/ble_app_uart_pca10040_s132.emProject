@@ -105,6 +105,7 @@
       <file file_name="../../../main.c">
         <configuration Name="Debug" build_exclude_from_build="No" />
       </file>
+      <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/user_liight_switch/server/include/nrf_mesh_config_app.h" />
     </folder>
     <folder Name="nRF_Segger_RTT">
       <file file_name="../../../../../../external/segger_rtt/SEGGER_RTT.c" />
@@ -117,7 +118,9 @@
       <file file_name="../../../../../../components/ble/nrf_ble_gatt/nrf_ble_gatt.c" />
       <file file_name="../../../../../../components/ble/ble_db_discovery/ble_db_discovery.c" />
       <file file_name="../../../../../../components/ble/nrf_ble_gq/nrf_ble_gq.c" />
-      <file file_name="../../../../../../components/ble/nrf_ble_scan/nrf_ble_scan.c" />
+      <file file_name="../../../../../../components/ble/nrf_ble_scan/nrf_ble_scan.c">
+        <configuration Name="Debug" build_exclude_from_build="No" />
+      </file>
     </folder>
     <folder Name="UTF8/UTF16 converter">
       <file file_name="../../../../../../external/utf_converter/utf.c" />
@@ -130,11 +133,11 @@
     </folder>
     <configuration LIBRARY_IO_TYPE="RTT" Name="Debug" />
     <folder Name="Mesh_Acess">
-      <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/access/src/access.c" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/access/src/access_publish.c" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/access/src/access_publish_retransmission.c" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/access/src/access_reliable.c" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/access/src/device_state_manager.c" />
+      <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/access/src/access.c" />
     </folder>
     <folder Name="Mesh_Bearer">
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/bearer/src/ad_listener.c" />
@@ -265,12 +268,12 @@
       <file file_name="../../../Source/user_on_off_server.c" />
       <file file_name="../../../Source/user_on_off_client.c" />
       <file file_name="../../../Source/ble_uart_service_central.h" />
-      <file file_name="../../../Source/app_user_on_off_server.c" />
       <file file_name="../../../Source/ble_config.c" />
-      <file file_name="../../../Source/user_on_off_mc.c" />
-      <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/common/src/app_dtt.c" />
-      <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/common/src/app_scene.c" />
-      <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/common/src/app_onoff.c" />
+    </folder>
+    <folder Name="nRF_SPIS">
+      <file file_name="../../../../../../integration/nrfx/legacy/nrf_drv_spis.c" />
+      <file file_name="../../../../../../modules/nrfx/drivers/src/nrfx_spis.c" />
+      <file file_name="../../../Source/user_spi.c" />
     </folder>
   </project>
   <configuration

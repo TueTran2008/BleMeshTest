@@ -46,6 +46,8 @@ static void init_variables()
   xSystem.status.is_device_adv = false;
 }
 
+
+extern void spi_main(void);
 /**@brief Application main function.
  */
 int main(void)
@@ -55,6 +57,7 @@ int main(void)
     ble_mesh_start();
     rtt_input_init(NULL);
     app_self_provision(m_client.model_handle, xSystem.network_info.app_key, xSystem.network_info.net_key, xSystem.network_info.unicast_address);
+    spi_main();
     for (;;)
     // Enter main loop.
     {

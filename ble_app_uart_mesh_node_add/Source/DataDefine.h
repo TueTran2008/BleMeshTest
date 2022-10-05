@@ -25,6 +25,13 @@ typedef struct
   global_status_t status;
 }System_t;
 
+typedef struct
+{
+  uint8_t data_buffer[64];
+  uint8_t index;
+  bool is_having_scan_response;/*<This may check by compare the index with MAX_ADV_DATA_LENGHT = 32>*/
+}adv_scan_data_t;
+
 extern System_t xSystem;
 typedef void(*app_flash_get_success_cb_t)(void* p_arg);
 

@@ -136,7 +136,8 @@ uint32_t app_start_flash(app_flash_get_success_cb_t p_callback)
         //}
         __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO,"NETWORK_KEY:\r\n",m_gateway_info.net_key, 16);
         __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO,"APPLICATION_KEY:\r\n",m_gateway_info.app_key, 16);
-        __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Unicast address:0x%04x\r\n", m_gateway_info.unicast_address.address_start + m_gateway_info.unicast_address.count);
+        __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Unicast address:0x%04x\r\n", m_gateway_info.unicast_address.address_start);
+        
         
     }
     else
@@ -147,13 +148,16 @@ uint32_t app_start_flash(app_flash_get_success_cb_t p_callback)
    }
 }
 
-void flash_read_gateway_info()
+void flash_read_gateway_info(mesh_network_info_t *p_network)
 {
+  uint32_t ret_code = 0;
   mesh_config_entry_id_t idx = GATEWAY_INFO_ENTRY_ID;
-  mesh_config_entry_get(idx, &m_gateway_info);
+  ret_code = mesh_config_entry_get(idx, &m_gateway_info);
+  APP_ERROR_CHECK(ret_code);
   __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO,"Read NETWORK_KEY:\r\n",m_gateway_info.net_key, 16);
   __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO,"Read APPLICATION_KEY:\r\n",m_gateway_info.app_key, 16);
-  __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Read Unicast address:0x%04x\r\n", m_gateway_info.unicast_address.address_start + m_gateway_info.unicast_address.count);
+  __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Read Unicast address:0x%04x\r\n", m_gateway_info.unicast_address.address_start);
+  memcpy(p_network, &m_gateway_info, sizeof(m_gateway_info));
 
 }
 void flash_save_gateway_info(mesh_network_info_t *p_network)
@@ -163,6 +167,7 @@ void flash_save_gateway_info(mesh_network_info_t *p_network)
   __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO,"SAVE APPLICATION_KEY:\r\n",p_network->app_key, 16);
   __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"SAVE Unicast address:0x%04x\r\n", p_network->unicast_address.address_start + p_network->unicast_address.count);
   mesh_config_entry_set(idx, p_network);
+
 }
 
 //static mesh_config_backend_iterate_action_t gateway_info_restore_callback(mesh_config_entry_id_t id, const uint8_t * p_entry, uint32_t entry_len)

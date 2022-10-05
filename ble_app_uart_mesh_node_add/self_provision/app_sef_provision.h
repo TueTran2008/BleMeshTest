@@ -3,8 +3,10 @@
 #include "access.h"
 #include "access_config.h"
 
-#define LOCAL_ADDRESS_START 0x0060
-#define GROUP_ADDRESS 0xC001
+#define LOCAL_ADDRESS_START 0x0001
+#define GROUP_ADDRESS_1 0xC001
+#define GROUP_ADDRESS_2 0xC002
+#define GROUP_ADDRESS_3 0xC003
 /*Netkey*/
 //#define APP_NETKEY {0x8C, 0x5C, 0x10, 0x23, 0xC9, 0x77, 0x8D, 0xFA, 0xC3, 0x69, 0x9F, 0x1C, 0x9E, 0x4A, 0x25, 0x28}
 //#define APP_NETKEY_INDEX 0
@@ -20,4 +22,6 @@
 void app_self_provision(access_model_handle_t model_handle,
                         int8_t *p_app_key, uint8_t *p_netkey, 
                         dsm_local_unicast_address_t m_start_unicast_add);
+
+ void subcribe_topic(access_model_handle_t model);
 #endif

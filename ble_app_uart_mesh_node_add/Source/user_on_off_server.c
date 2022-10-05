@@ -179,7 +179,6 @@ uint32_t user_on_off_server_init(user_on_off_server_t * p_server, uint8_t elemen
     };
 
     uint32_t status = access_model_add(&init_params, &p_server->model_handle);
-
     if (status == NRF_SUCCESS)
     {
         status = access_model_subscription_list_alloc(p_server->model_handle);

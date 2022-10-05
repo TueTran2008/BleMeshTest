@@ -4,9 +4,14 @@
 #include "access_config.h"
 
 #define LOCAL_ADDRESS_START 0x0001
-#define GROUP_ADDRESS_1 0xC001
-#define GROUP_ADDRESS_2 0xC002
-#define GROUP_ADDRESS_3 0xC003
+#define MESH_TOPIC_ALL 0xC001
+#define MESH_TOPIC_CONTROL 0xC002   /*Gateway send to this topic*/
+#define MESH_TOPIC_WARNING 0xC003   /*Gateway control, all node sub*/
+#define MESH_TOPIC_REPORT  0xC004   /*Gateway sub, Node send*/
+
+#define MESH_TOPIC_CONTROL_ACK 0xC005 /*Node ping*/
+#define MESH_TOPIC_WARNING_ACK 0xC006
+/*Netkey*/
 /*Netkey*/
 //#define APP_NETKEY {0x8C, 0x5C, 0x10, 0x23, 0xC9, 0x77, 0x8D, 0xFA, 0xC3, 0x69, 0x9F, 0x1C, 0x9E, 0x4A, 0x25, 0x28}
 //#define APP_NETKEY_INDEX 0
@@ -22,4 +27,12 @@
 void app_self_provision(access_model_handle_t model_handle,
                         int8_t *p_app_key, uint8_t *p_netkey, 
                         dsm_local_unicast_address_t m_start_unicast_add);
+
+void subcribe_topic(access_model_handle_t model);
+                       
+void app_gateway_get_current_info();
+
+void app_get_sequence_number_and_iv_index(uint32_t *iv_index, uint32_t *sequence_number);
+
+void app_generate_random_keys(uint8_t *app_key, uint8_t *net_key);
 #endif

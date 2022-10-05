@@ -11,4 +11,8 @@ void ble_uart_service_init();
 void ble_service_advertising_start(void);
 
 void ble_service_advertising_stop(void);
+
+void scan_start(void);
+
+void scan_stop(void);
 #endif
