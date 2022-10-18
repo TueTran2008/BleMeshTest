@@ -17,6 +17,7 @@
 #include "nrf_mesh_config_core.h"
 #include "mesh_opt_net_state.h"
 #include "nrf_drv_rng.h"
+#include "nrf_log.h"
 
 
 extern void flash_read_gateway_info(mesh_network_info_t *p_network);
@@ -44,6 +45,7 @@ static dsm_handle_t m_devkey_handle = 0;
 static dsm_handle_t m_group_1_addres_handle = 0;
 static dsm_handle_t m_group_2_addres_handle = 0;
 static dsm_handle_t m_group_3_addres_handle = 0;
+static dsm_handle_t m_group_4_addres_handle = 0;
 
 /**<Static uniscast addresss for provisioning>*/
 static dsm_local_unicast_address_t m_start_unicast_add = {
@@ -86,6 +88,8 @@ static void self_provision(uint8_t *p_app_key, uint8_t *p_netkey, dsm_local_unic
   APP_ERROR_CHECK(err_code);
 
   m_subnet_handle = dsm_net_key_index_to_subnet_handle(0);
+  /**/
+
   err_code = dsm_devkey_add(m_start_unicast_add.address_start + m_start_unicast_add.count, m_subnet_handle, m_dev_key, &m_devkey_handle);
   APP_ERROR_CHECK(err_code);
      /*Add App Key*/
@@ -135,8 +139,8 @@ void subcribe_topic(access_model_handle_t model)
   err_code = access_model_application_bind(model, m_appkey_handle);
   APP_ERROR_CHECK(err_code);
   /*Set the public address*/
-  err_code = dsm_address_publish_add(MESH_TOPIC_CONTROL, &m_group_1_addres_handle);
   APP_ERROR_CHECK(err_code);
+  err_code = dsm_address_publish_add(MESH_TOPIC_CONTROL, &m_group_1_addres_handle);
 
   err_code = access_model_publish_application_set(model, m_appkey_handle);
   APP_ERROR_CHECK(err_code);
@@ -145,16 +149,15 @@ void subcribe_topic(access_model_handle_t model)
   __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Public address set %d\r\n", err_code);
   APP_ERROR_CHECK(err_code);
   __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Subribe Topic\r\n");
-
-// Add the address to the DSM as a subscription address:
   //dsm_address_subscription_add(GROUP_ADDRESS_1, &m_group_1_addres_handle);
   dsm_address_subscription_add(MESH_TOPIC_ALL, &m_group_2_addres_handle);
   dsm_address_subscription_add(MESH_TOPIC_REPORT, &m_group_3_addres_handle);
+  dsm_address_subscription_add(MESH_TOPIC_WARNING, &m_group_4_addres_handle);
   // Add the subscription to the model:
   //access_model_subscription_add(model, m_group_1_addres_handle);
   access_model_subscription_add(model, m_group_2_addres_handle);
   access_model_subscription_add(model, m_group_3_addres_handle);
- // mesh_stack_device_reset(); 
+  access_model_subscription_add(model, m_group_4_addres_handle);
 }
 
 /** @brief
@@ -171,53 +174,19 @@ void app_self_provision(access_model_handle_t model_handle,
   bool is_device_provisioned = nrf_mesh_is_device_provisioned();
   if(is_device_provisioned == false)
   {
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Begin Self Provision\r\n");
+    NRF_LOG_INFO("Begin Self Provision\r\n");
     self_provision(p_app_key, p_netkey, m_start_unicast_add);
   }
   else
   {
     dsm_local_unicast_address_t last_unicast = {0};
     dsm_local_unicast_addresses_get(&last_unicast); 
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Last unicast address %d\r\n", last_unicast.address_start);
+    NRF_LOG_INFO("Last unicast address %d\r\n", last_unicast.address_start);
   }
   subcribe_topic(model_handle);
 }
-/** @brief
- *
- * @param[out]    
- * @param[in]   
- *
- * @retval     
- */
-//void app_gateway_get_current_info()
-//{
-//  dsm_local_unicast_address_t local_addr;
-//  uint32_t ret_code = 0;
-//  mesh_gateway_transfer_t gateway_info;
-//  nrf_mesh_secmat_t secmat;
 
-//  dsm_handle_t get_app_key_handle = dsm_appkey_index_to_appkey_handle(0);
-//  dsm_handle_t get_net_key_handle = dsm_net_key_index_to_subnet_handle(0);
-//  ret_code = dsm_tx_secmat_get(get_net_key_handle, get_app_key_handle, &secmat);
-//  /**<Get all current subnet keys>*/
-//  //dsm_subnet_key_get(gateway_info.net_key.n_value, &gateway_info.net_key.net_count);
-//  //ret_code = dsm_subnet_key_get(m_subnet_handle, gateway_info.net_key.n_value);
-//  //APP_ERROR_CHECK(ret_code);
-//  //__LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Get current network security materials\r\n");
-//  //__LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Netkey secmatr:\r\n:");
-//  __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "***) Network identifier:%d\r\n", secmat.p_net->nid);
-//  __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "***) Network Encyption Key", secmat.p_net->encryption_key, NRF_MESH_KEY_SIZE);
-//  __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "\r\n***) Network Private Key", secmat.p_net->privacy_key, NRF_MESH_KEY_SIZE);
-
-//  //__LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "\r\n\r\nGet current Applcation security materials\r\n");
-//  //__LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Appke secmatr:\r\n:");
-//  __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "***) Application  ID:%d\r\n", secmat.p_app->aid);
-//  __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "***) Application Encyption Key=", secmat.p_app->key, NRF_MESH_KEY_SIZE);
-//  //__LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "\r\n***) Network Private Key", secmat.p_net->privacy_key);
-//  /*Get sequence number and vector index*/
-//}
-
-/** @brief
+/** @brief  Get current sequence number and iv_index
  *
  * @param[out]    
  * @param[in]   
@@ -233,8 +202,8 @@ void app_get_sequence_number_and_iv_index(uint32_t *iv_index, uint32_t *sequence
    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Get sequence number data from flash%d\r\n", ret_code);
    APP_ERROR_CHECK(ret_code);
   *sequence_number = seqnum_data.next_block;
-  __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "***) IV index :%d\r\n", *iv_index);
-  __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "***) Sequence Number:%u\r\n", *sequence_number);
+  NRF_LOG_INFO("***) IV index :%d\r\n", *iv_index);
+  NRF_LOG_INFO("***) Sequence Number:%u\r\n", *sequence_number);
 }
 /** @brief
  *
@@ -258,8 +227,8 @@ void app_generate_random_keys(uint8_t *app_key, uint8_t *net_key)
     length = random_vector_generate(p_buff, NRF_MESH_KEY_SIZE);
     memcpy(app_key, p_buff, sizeof(p_buff));
 
-    __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "***) Generate Application Key", app_key, NRF_MESH_KEY_SIZE);
-    __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "\r\n***) Generate Network Key", net_key, NRF_MESH_KEY_SIZE);
+    NRF_LOG_INFO("***) Generate Application Key", app_key, NRF_MESH_KEY_SIZE);
+    NRF_LOG_INFO("\r\n***) Generate Network Key", net_key, NRF_MESH_KEY_SIZE);
 }
 /** @brief
  *
@@ -276,4 +245,102 @@ void app_tx_parse_and_send()
     uint32_t sequence_number = 0;
     app_get_sequence_number_and_iv_index(&iv_index, &sequence_number);
     /*TODO:"Sending function*/
+}
+/** @brief
+ *
+ * @param[in]   
+ * @param[in]
+ * @param[out]    
+ * @retval     
+ */
+bool app_mesh_check_publish_address(access_model_handle_t model_handle, dsm_handle_t *p_dsm_out)
+{
+  uint32_t status = NRF_SUCCESS;
+  dsm_handle_t publish_address_handle;
+  status = access_model_publish_address_get(model_handle, &publish_address_handle);
+  if(status != NRF_SUCCESS)
+  {
+    NRF_LOG_ERROR("Failed code: %d at %s\r\n", status, __FUNCTION__);
+    if(status != NRF_ERROR_NOT_FOUND)
+      APP_ERROR_CHECK(status);
+    return false;
+  }
+  else
+  {
+    *p_dsm_out = publish_address_handle;
+    return true;
+  }
+}
+
+uint32_t app_mesh_add_new_publish_topic(bool remove_address, uint16_t new_address, access_model_handle_t model_handle)
+{
+  uint32_t status = NRF_SUCCESS;
+  dsm_handle_t publish_adddress_handle;
+  if(remove_address)
+  {
+    if(app_mesh_check_publish_address(model_handle, &publish_adddress_handle))
+    {
+      status = dsm_address_publish_remove(publish_adddress_handle);
+      if (status != NRF_ERROR_NOT_FOUND && status != NRF_SUCCESS)
+      {
+        APP_ERROR_CHECK(status);
+      }
+      else
+      {
+        NRF_LOG_ERROR("Publish Address: 0x%04x\r\n", new_address);
+        status = dsm_address_publish_add(new_address, &publish_adddress_handle);
+        APP_ERROR_CHECK(status);
+      }
+    }
+    else
+    {
+      return NRF_ERROR_BUSY;
+    }
+  }
+  else
+  {
+    status = dsm_address_publish_add(new_address, &publish_adddress_handle);
+    APP_ERROR_CHECK(status);
+  }
+  status = access_model_publish_address_set(model_handle, publish_adddress_handle);
+  APP_ERROR_CHECK(status);
+  return status;
+}
+
+void app_mesh_reprovision_from_server(uint8_t *p_appkey, uint8_t *p_netkey)
+{
+  m_subnet_handle = dsm_net_key_index_to_subnet_handle(0);
+  if(p_appkey)
+  {
+    mesh_key_index_t *key_index;
+    uint32_t status = NRF_SUCCESS;
+    /*Get the netkey index*/
+    m_appkey_handle = dsm_appkey_index_to_appkey_handle(0);
+    /*Delete the current app key*/
+    status = dsm_appkey_delete(m_appkey_handle);
+    APP_ERROR_CHECK(status);
+    /*Add the new app key*/
+    status = dsm_appkey_add(APP_KEY_INDEX, m_subnet_handle, p_appkey, &m_appkey_handle);
+    //provision_data.netkey_index++;
+    APP_ERROR_CHECK(status);
+  }
+  else
+  {
+    NRF_LOG_WARNING("Device won't update appkey\r\n");
+  }
+  if(p_netkey)
+  {
+    uint32_t status = NRF_SUCCESS;
+    /*Delete the current net key*/
+    status = dsm_subnet_delete(m_subnet_handle);
+    APP_ERROR_CHECK(status);
+    /*Add the new netkey*/
+    status = dsm_subnet_add(0, p_appkey, &m_subnet_handle);
+    APP_ERROR_CHECK(status);
+    /**/
+  }
+  else
+  {
+    NRF_LOG_WARNING("Device won't update netkey\r\n");
+  }
 }

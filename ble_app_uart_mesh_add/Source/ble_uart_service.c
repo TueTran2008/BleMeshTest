@@ -52,7 +52,8 @@
 #include "ble_uart_service.h"
 #include "nrf_ble_scan.h"
 #include "ble_advdata.h"
-
+#include "app_mesh_check_duplicate.h"
+#include "flash_if.h"
 System_t xSystem;
 
 static void node_nus_data_handler(ble_nus_evt_t *p_evt);
@@ -105,6 +106,12 @@ NRF_BLE_SCAN_DEF(m_scan);                                               /**< Sca
 /*****************************************************************************
  * Static variables
  *****************************************************************************/
+static app_beacon_data_t  m_beacon_list[APP_MAX_BEACON] = {0};
+static uint16_t m_beacon_write = 0;
+static uint16_t m_beacon_read = 0;
+static bool read_from_flash = false;
+
+
 static uint8_t    m_adv_handle           = BLE_GAP_ADV_SET_HANDLE_NOT_SET;          /**< Handle of adversting work*/
 static uint16_t   m_conn_handle          = BLE_CONN_HANDLE_INVALID;                 /**< Handle of the current connection. */
 static uint16_t   m_ble_nus_max_data_len = BLE_GATT_ATT_MTU_DEFAULT - 3;            /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
@@ -114,15 +121,39 @@ static ble_uuid_t m_adv_uuids[]          =                                      
 };
 static bool m_is_node_request_data = false;
 
+static beacon_data_callback_t beacon_cb;
+
 static uint8_t m_device_mac[6] = {0};
 /*****************************************************************************
  * Forward Declaration
  *****************************************************************************/
 void advertising_stop();
+void app_beacon_queue_read(app_beacon_data_t *p_beacon_data);
+
+void app_beacon_queue_write(app_beacon_data_t *p_beacon_data);
+static uint8_t* app_filter_sensor_value(uint8_t *p_data, uint16_t length);
+static inline bool app_check_valid_mac(uint8_t *mac);
+static void app_handle_sensor_data(void *p_data);
+static inline bool app_check_valid_token(uint16_t token);
 static uint32_t mesh_pair_info_packet_create(uint8_t *p_out_buffer, uint32_t out_buffer_len, bool is_exchange_address, uint8_t msg_id);
+
 /*****************************************************************************
  * Private function
  *****************************************************************************/
+void app_ble_enter_pair_mode()
+{
+  xSystem.is_in_pair_mode = true;
+  scan_stop();
+  ble_service_advertising_start();
+}
+void app_ble_exit_pair_mode()
+{
+  xSystem.is_in_pair_mode = false;
+  ble_service_advertising_stop();
+  scan_start();
+}
+
+
 /**@brief Function for assert macro callback.
  *
  * @details This function will be called in case of an assert in the SoftDevice.
@@ -137,6 +168,7 @@ static uint32_t mesh_pair_info_packet_create(uint8_t *p_out_buffer, uint32_t out
 void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 {
     app_error_handler(DEAD_BEEF, line_num, p_file_name);
+    
 }
 /**@brief Function for initializing the timer module.
  */
@@ -358,6 +390,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
             __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"BLE_Connected\r\n");
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             err_code = nrf_ble_qwr_conn_handle_assign(&m_qwr, m_conn_handle);
+            xSystem.is_in_pair_mode = true;
             APP_ERROR_CHECK(err_code);
             break;
 
@@ -365,6 +398,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
             __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"BLE Disconnected\r\n");
             /**<Reset to state of adv beacuse of ble_adv_on_disconnect_disabled = true>*/
             xSystem.status.is_device_adv = false;
+            xSystem.is_in_pair_mode = false;
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
             break;
 
@@ -409,7 +443,15 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
             APP_ERROR_CHECK(err_code);
             break;
         case BLE_GAP_EVT_ADV_REPORT:
+        {
             //__LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "Data Packet", p_gap_evt->params.adv_report.data.p_data, p_gap_evt->params.adv_report.data.len);
+            uint8_t *p_data = NULL;
+            p_data = app_filter_sensor_value(p_gap_evt->params.adv_report.data.p_data, p_gap_evt->params.adv_report.data.len);
+            if(p_data != NULL)
+            {
+              app_handle_sensor_data(p_data);
+            }
+        }
             break;
         default:
             // No implementation needed.
@@ -492,22 +534,21 @@ static void node_nus_data_handler(ble_nus_evt_t *p_evt)
         if(p_request_key->token == BEACON_DEFAULT_TOKEN && p_request_key->msg_id == PAIR_ID_DEVICE_REQUEST_INFO)
         {
           /*Save the current*/
-          
           __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO,"Beacon MAC", p_request_key->mac , 6);/**<6 is the size of mac address*/
           m_is_node_request_data = 1;
-          __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Node Notification request\r\n");
+          NRF_LOG_INFO("Node Notification request\r\n");
           if(m_is_node_request_data)
           {
             uint8_t ret_message[sizeof(pair_info_t) + 1];
             uint16_t length = sizeof(ret_message);
             mesh_pair_info_packet_create(ret_message, length, false, PAIR_ID_GATEWAY_ACCEPT_PAIR_REQUEST);  
             err_code = ble_nus_data_send(&m_nus, (uint8_t*)&ret_message, &length, m_conn_handle);
-            __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Send gateway info through BLE CCCD\r\n");
+            NRF_LOG_INFO("Send gateway info through BLE CCCD\r\n");
             if ((err_code != NRF_ERROR_INVALID_STATE) &&
                 (err_code != NRF_ERROR_RESOURCES) &&
                 (err_code != NRF_ERROR_NOT_FOUND))
             {
-                __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Send nus data error: 0x%02x\r\n", err_code);
+                NRF_LOG_INFO("Send nus data error: 0x%02x\r\n", err_code);
                 APP_ERROR_CHECK(err_code);
             }
             m_is_node_request_data = 0;
@@ -515,16 +556,24 @@ static void node_nus_data_handler(ble_nus_evt_t *p_evt)
         }
         else
         {
-          __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Wrong token or ID\r\n");
+          NRF_LOG_ERROR("Wrong token or ID\r\n");
+          err_code = sd_ble_gap_disconnect(p_evt->conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+          APP_ERROR_CHECK(err_code);
+          /*Config AUTO Stop Adverting if disconnected =>*/
+          xSystem.status.is_device_adv = false;
+          xSystem.is_in_pair_mode = 0;
+          scan_start();
         }
 
     }
   }
   else if(p_evt->type == BLE_NUS_EVT_COMM_STARTED)
   {
-    /**/
-    /*Slave*/
-
+      NRF_LOG_INFO("NUS Central has ENABLE Notification\r\n");
+  }
+  else if(p_evt->type == BLE_NUS_EVT_COMM_STOPPED)
+  {
+      NRF_LOG_WARNING("NUS Central has DISABLE Notification\r\n");
   }
 }
 
@@ -640,7 +689,7 @@ void ble_service_advertising_start(void)
  */
 static uint32_t app_mesh_set_default_key(uint8_t *app_key, uint8_t *net_key)
 {
-  if(app_key == NULL || net_key || NULL)
+  if(app_key == NULL || net_key == NULL)
   {
     return NRF_ERROR_NULL;
   }
@@ -676,7 +725,14 @@ static void ble_load_mac_address()
  */
 uint8_t *app_ble_get_mac()
 {
-    return (uint8_t*)&m_device_mac[0];
+    if(read_from_flash)
+    {
+      return (uint8_t*)&xSystem.flash_parameter.pair_information.pair_mac[0];
+    }
+    else
+    {
+      return (uint8_t*)&m_device_mac[0];
+    }
 }
 /** @brief  Transfer default mesh key to mesh key base on MAC address(Refer to BYTECH Standard:D)
  *        
@@ -733,17 +789,19 @@ static uint32_t mesh_pair_info_packet_create(uint8_t *p_out_buffer, uint32_t out
     return NRF_ERROR_NO_MEM;
   }
   memcpy(pair_info.pair_mac, app_ble_get_mac(), sizeof(pair_info.pair_mac));
-  pair_info.next_unicast_addr = xSystem.network_info.unicast_address.address_start + xSystem.network_info.unicast_address.count;
-  pair_info.exchange_pair_addr = xSystem.network_info.unicast_address.address_start;
-  pair_info.topic_all = MESH_TOPIC_ALL;
-  pair_info.topic_control = MESH_TOPIC_CONTROL;
-  pair_info.topic_warning = MESH_TOPIC_WARNING;
-  pair_info.topic_report = MESH_TOPIC_REPORT;
-  pair_info.topic_ctrol_ack = MESH_TOPIC_CONTROL_ACK;
-  pair_info.topic_warning_ack = MESH_TOPIC_WARNING_ACK;
 
-  memcpy(pair_info.key.appkey, xSystem.network_info.app_key, NRF_MESH_KEY_SIZE);
-  memcpy(pair_info.key.netkey, xSystem.network_info.net_key, NRF_MESH_KEY_SIZE);
+  pair_info.next_unicast_addr = xSystem.flash_parameter.pair_information.next_unicast_addr;
+  pair_info.exchange_pair_addr = xSystem.flash_parameter.pair_information.exchange_pair_addr;
+  
+  pair_info.topic_all = xSystem.flash_parameter.pair_information.topic_all;
+  pair_info.topic_control = xSystem.flash_parameter.pair_information.topic_control;
+  pair_info.topic_warning = xSystem.flash_parameter.pair_information.topic_warning;
+  pair_info.topic_report = xSystem.flash_parameter.pair_information.topic_report;
+  pair_info.topic_ctrol_ack = xSystem.flash_parameter.pair_information.topic_ctrol_ack;
+  pair_info.topic_warning_ack = xSystem.flash_parameter.pair_information.topic_warning_ack;
+
+  memcpy(pair_info.key.appkey, xSystem.flash_parameter.pair_information.key.appkey, NRF_MESH_KEY_SIZE);
+  memcpy(pair_info.key.netkey, xSystem.flash_parameter.pair_information.key.netkey, NRF_MESH_KEY_SIZE);
   pair_info.state = PAIR_INFO_STATE_PROVISIONING;
   /*Fill message ID*/
   message_buffer[0] = msg_id;
@@ -751,7 +809,27 @@ static uint32_t mesh_pair_info_packet_create(uint8_t *p_out_buffer, uint32_t out
   
   /*Copy data to out buffer*/
   memcpy(p_out_buffer, message_buffer, sizeof(message_buffer));
+  /*Save save next unicast when provision other*/
+  xSystem.flash_parameter.pair_information.next_unicast_addr = pair_info.next_unicast_addr + 
+                                                              + xSystem.network_info.unicast_address.count;
+  //xSystem.flash_parameter.pair_information.exchange_pair_addr = 
+  xSystem.flash_parameter.pair_information.exchange_pair_addr =  pair_info.exchange_pair_addr + 2;
+  NRF_LOG_INFO("Next provsion Address:%d", xSystem.flash_parameter.pair_information.exchange_pair_addr);
+  xSystem.flash_parameter.total_provisioned_node++;
+  app_flash_save_config_parameter();
+  //xSystem.flash_parameter.node_provision_add.count = 
   return NRF_SUCCESS;
+}
+/** @brief    Save Next Node provision Information
+ *
+ * @param[out]    
+ * @param[in]   
+ *
+ * @retval     
+ */
+static uint32_t mesh_pair_save_next_provision_node(dsm_local_unicast_address_t save_address)
+{
+  
 }
 /**@brief Function to start scanning. */
 void scan_start(void)
@@ -847,34 +925,73 @@ static void scan_init(void)
     init_scan.conn_cfg_tag     = APP_BLE_CONN_CFG_TAG;
     //init_scan.p_scan_param->active = 0x01;
     
-
     err_code = nrf_ble_scan_init(&m_scan, &init_scan, scan_evt_handler);
     APP_ERROR_CHECK(err_code);
-    uint8_t name_string[] = "TPMS4";
-    err_code = nrf_ble_scan_filter_set(&m_scan, SCAN_NAME_FILTER, name_string);
-    APP_ERROR_CHECK(err_code);
-
-    err_code = nrf_ble_scan_filters_enable(&m_scan, NRF_BLE_SCAN_NAME_FILTER, false);
-   }
+ }
 
 
-void ble_uart_service_init()
+ /**/
+
+void app_ble_load_config_paramter()
 {
-    log_nrf_init();
-    __LOG_INIT(LOG_SRC_APP | LOG_SRC_TRANSPORT, LOG_LEVEL_INFO | LOG_LEVEL_DBG3, LOG_CALLBACK_DEFAULT);
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "----- BLE UART GATEWAY SERVICE Initialize-----\n");
-    /*<set default mesh key for static variables>*/
+  if(/**/!app_flash_get_config_parameter())
+  {
+
+    NRF_LOG_INFO("Get Flash Config Paramter\r\n");
+    memcpy(xSystem.network_info.app_key, xSystem.flash_parameter.pair_information.key.appkey, 16);
+    memcpy(xSystem.network_info.net_key, xSystem.flash_parameter.pair_information.key.netkey, 16);
+    read_from_flash = true;
+  }
+  else
+  {
+    /**/
+    NRF_LOG_INFO("No Saved Data Config => Self Init Config Parameter\r\n");
     app_mesh_set_default_key(xSystem.network_info.app_key, xSystem.network_info.net_key);
     /*<load the mac address of current chip>*/
     ble_load_mac_address();
     /**<set Bytech standard key>*/
     app_mesh_transfer_to_mac_key(xSystem.network_info.app_key, xSystem.network_info.net_key, app_ble_get_mac());
+
+    xSystem.flash_parameter.pair_information.topic_all = MESH_TOPIC_ALL;
+    xSystem.flash_parameter.pair_information.topic_control = MESH_TOPIC_CONTROL;
+    xSystem.flash_parameter.pair_information.topic_warning = MESH_TOPIC_WARNING;
+    xSystem.flash_parameter.pair_information.topic_report = MESH_TOPIC_REPORT;
+    xSystem.flash_parameter.pair_information.topic_ctrol_ack = MESH_TOPIC_CONTROL_ACK;
+    xSystem.flash_parameter.pair_information.topic_warning_ack = MESH_TOPIC_WARNING_ACK;
+
+    /*Copy Key*/
+    memcpy(xSystem.flash_parameter.pair_information.key.appkey, xSystem.network_info.app_key, 16);
+    memcpy(xSystem.flash_parameter.pair_information.key.netkey, xSystem.network_info.net_key, 16);
+  
+    /**/
+    memcpy(&xSystem.flash_parameter.pair_information.pair_mac, app_ble_get_mac(), 6);
     /**<Set standard MAC address>*/
     mesh_network_info_t gateway_info;
     gateway_info.unicast_address.address_start = LOCAL_ADDRESS_START;
     gateway_info.unicast_address.count = ACCESS_ELEMENT_COUNT;
-    /**<>*/
-    memcpy(&xSystem.network_info, &gateway_info, sizeof(mesh_network_info_t));
+    /**<Copy Gateway Address>*/
+    memcpy(&xSystem.network_info.unicast_address, &gateway_info.unicast_address, sizeof(gateway_info.unicast_address));
+    xSystem.flash_parameter.pair_information.next_unicast_addr = xSystem.network_info.unicast_address.address_start;
+    xSystem.flash_parameter.pair_information.exchange_pair_addr = xSystem.network_info.unicast_address.address_start + 2;
+
+
+    xSystem.flash_parameter.config_parameter.SpeakerVolume = 50;
+    xSystem.flash_parameter.config_parameter.AlarmConfig.Name.EnableSyncAlarm = 1;
+    xSystem.flash_parameter.config_parameter.AlarmConfig.Name.EnableBuzzer = 1;
+    app_flash_save_config_parameter();
+    read_from_flash = false;
+  }
+}
+
+void ble_uart_service_init()
+{
+    log_nrf_init();
+    NRF_LOG_INFO("NRF LOG INIT\r\n");
+    __LOG_INIT(LOG_SRC_APP | LOG_SRC_TRANSPORT | LOG_SRC_ACCESS, LOG_LEVEL_INFO | LOG_LEVEL_DBG3 | LOG_LEVEL_DBG2 | LOG_LEVEL_DBG1, LOG_CALLBACK_DEFAULT);
+    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "----- BLE UART GATEWAY SERVICE Initialize-----\n");
+    /*<set default mesh key for static variables>*/
+    
+
     /*nRF5 SDK Init*/
     //uart_init();
 
@@ -890,9 +1007,7 @@ void ble_uart_service_init()
 }
 
 
-static bool ble_advdata_name_part_find(uint8_t const * p_encoded_data,
-                           uint16_t        data_len,
-                           char    const * p_target_name)
+static bool ble_advdata_name_part_find(uint8_t const * p_encoded_data, uint16_t data_len, char const * p_target_name)
 {
     uint16_t        parsed_name_len;
     uint8_t const * p_parsed_name;
@@ -932,7 +1047,6 @@ static bool ble_advdata_name_part_find(uint8_t const * p_encoded_data,
  *
  * @retval True when the names match. False otherwise.
  */
-
 bool advdata_part_name_find(ble_gap_evt_adv_report_t const * p_adv_rp,
                                    nrf_ble_scan_t     const * const p_scan_ctx)
 {
@@ -957,3 +1071,290 @@ bool advdata_part_name_find(ble_gap_evt_adv_report_t const * p_adv_rp,
 
     return false;
 }
+
+/** @brief Filter sensor belong to fire, temperature, or somekind base on manufacturer value
+ 
+ * @param[in] p_data: Received Advertising Data
+ * @param[in] length: Lenght of received Advertising Data
+ *
+ * @retval Pointer point to Beacon message
+ */
+static uint8_t* app_filter_sensor_value(uint8_t *p_data, uint16_t length)
+{
+  if(p_data == NULL || length == 0)
+  {
+    return NULL;
+  }
+  uint8_t *p_manufacture_data = NULL;
+  uint16_t offset = 0;
+  uint16_t len = 0;
+  len = ble_advdata_search(p_data, length, &offset, BLE_GAP_AD_TYPE_MANUFACTURER_SPECIFIC_DATA);
+  /*Move the pointer to the Manufacture data really in*/
+  if(len == 0 || offset == 0)
+  {
+    return NULL;
+  }
+  p_manufacture_data = p_data + offset;
+  
+  if(p_manufacture_data[0] != (APP_BEACON_COMPANY_ID >> 8) || 
+     p_manufacture_data[1] != (APP_BEACON_COMPANY_ID & 0x00FF))
+  {
+    return NULL;
+  }
+  else
+  {
+    /*if get the correct company => return to the correct data type*/
+    /*<2 is length of manufacture data >*/
+    p_manufacture_data = p_manufacture_data + 2;
+    //__LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "\r\n Manufacture Specific Data", p_manufacture_data, len - 2);
+    return p_manufacture_data;
+  }
+}
+
+/** @brief: Verify if beacon data belong to this network by checking mac address
+ *
+ * @param[in]: p_ma: Pointer to MAC adddress
+ * @param[in] 
+ *
+ * @retval: true if same mac address
+ */
+static inline bool app_check_valid_mac(uint8_t *p_mac)
+{
+  if(memcmp(p_mac, app_ble_get_mac(), 6) == 0)
+  {
+    
+    return true;
+  }
+  else
+  {
+    NRF_LOG_ERROR("Scanned Beacon Device doesn't belong to this network => reprovision beacon\r\n");
+    return false;
+  }
+}
+
+/** @brief: Verify if beacon data belong to this network by Token
+ *
+ * @param[in]: p_ma: Pointer to MAC adddress
+ * @param[in] 
+ *
+ * @retval: true if same mac address
+ */
+static inline bool app_check_valid_token(uint16_t token)
+{
+  uint16_t reference_toke = APP_TOKEN;
+  if(memcmp(&token, &reference_toke, sizeof(reference_toke)) == 0)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+/** @brief: Write sensor value to appropriate place
+ *
+ * @param[in]: p_ma: Pointer to beacon data type
+ * @param[in] 
+ *
+ * @retval: true if same mac address
+ */
+ void app_beacon_queue_write(app_beacon_data_t *p_beacon_data)
+ {
+
+    //static app_beacon_data_t m_last_beacon_data;
+    for(uint16_t index = 0; index <= m_beacon_write; index++)
+    {
+      /*Insert the same data at same position*/
+       if(memcmp(&m_beacon_list[index].device_mac, p_beacon_data->device_mac, 6) == 0 )
+          /*&& m_beacon_list[index].is_data_valid)*/
+       {
+          if(1/*m_beacon_list[index].beacon_tid.info.tid < p_beacon_data->beacon_tid.info.tid*/)
+          { 
+            /*New data :D*/
+            
+            memcpy(&m_beacon_list[index], p_beacon_data, sizeof(app_beacon_data_t));
+            m_beacon_list[index].is_data_valid = 1; // need to read this data
+            return;
+          }
+          else
+          {
+            return;
+          }
+       }
+    }
+    /*Insert Data if it's from new beacon :D*/
+    m_beacon_list[m_beacon_write].is_data_valid = 1; // Data available to read;
+    memcpy(&m_beacon_list[m_beacon_write], p_beacon_data, 6);
+    if(m_beacon_write == APP_MAX_BEACON)
+    {
+      __LOG(LOG_SRC_APP, LOG_LEVEL_ERROR, "Beacon queue full\r\n");
+    }
+    m_beacon_write++;
+    NRF_LOG_INFO("Insert new Beacon to the list: %d\r\n", m_beacon_write);
+    xSystem.sensor_count = m_beacon_write;
+ }
+ /** @brief   Circle Read m_beacon_list to send data
+ *
+ * @param[in]
+ * @param[in] 
+ *
+ * @retval 
+ */
+void app_beacon_queue_read(app_beacon_data_t *p_beacon_data)
+{
+   /*Gui du lieu cam bien moi di*/
+   for(uint16_t index = m_beacon_read; index <= m_beacon_write; index++)
+   {
+      if(m_beacon_list[index].is_data_valid == 1)
+      {
+          __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Read index:%u\r\n", index);
+          *p_beacon_data = m_beacon_list[index];
+          /*Clear new data is available*/
+           m_beacon_list[index].is_data_valid = 0;
+          /*Handle the index in array => Carelessly Handle causes Memory leak:D*/
+          if(index < m_beacon_write)
+          {
+            m_beacon_read = index + 1;
+          }
+          else if(index == m_beacon_write)
+          {
+            m_beacon_read = 0;
+          }
+          return;
+      }
+   }
+   m_beacon_read = 0xFF;
+   p_beacon_data = NULL;
+   
+}
+/** @brief 
+ *
+ * @param[in]
+ * @param[in] 
+ *
+ * @retval 
+ */
+static void app_handle_sensor_data(void *p_data)
+{
+   app_beacon_data_t this_beacon;
+   app_beacon_t *p_beacon_msg = (app_beacon_t*)p_data;
+   if(!app_check_valid_mac(p_beacon_msg->uuid.detail.gw_mac))
+   {
+      return;
+   }
+   if(!app_check_valid_token(p_beacon_msg->token))
+   {  
+      /**/
+      return;
+   }
+   app_transaction_t tid_arrive;
+   tid_arrive.tid = p_beacon_msg->uuid.detail.beacon_tid.info.tid;
+   tid_arrive.unicast_addr = p_beacon_msg->uuid.detail.unicast_addr;
+
+  /*Check xem TID có trùng không :D*/
+  if (app_mesh_tid_is_duplicate(&tid_arrive))
+  {
+    static uint32_t count = 0;
+    if (count++ == 10)
+    {
+      NRF_LOG_INFO("Duplicate beacon\r\n");
+      count = 0;
+    }
+    return;
+  }
+	/*Filter Duplicate data*/
+   app_mesh_insert_tid(&tid_arrive);
+   /*alarm structure parser*/
+   app_alarm_message_structure_t alarm_struct_sos = {0};
+   alarm_struct_sos.battery_value = p_beacon_msg->battery;
+   alarm_struct_sos.dev_type = p_beacon_msg->device_type;
+   alarm_struct_sos.fw_version = p_beacon_msg->uuid.detail.beacon_tid.info.version;
+   alarm_struct_sos.msg_type = p_beacon_msg->msg_type;
+   alarm_struct_sos.reserve.raw = p_beacon_msg->uuid.detail.temperature.value;
+  
+   /*Gateway structure*/
+   gw_mesh_msq_t msg_arrive;
+   memset(&msg_arrive, 0, sizeof(gw_mesh_msq_t));
+
+   msg_arrive.msg_id = GW_MESH_MSQ_ID_ALARM_SYSTEM;
+   msg_arrive.mesh_id = p_beacon_msg->uuid.detail.unicast_addr;
+   msg_arrive.len = sizeof(app_alarm_message_structure_t);
+
+   memcpy(msg_arrive.mac, p_beacon_msg->uuid.detail.device_mac, 6);
+   memcpy(msg_arrive.data, &alarm_struct_sos, sizeof(alarm_struct_sos));
+ 
+   if(app_mesh_gw_queue_push(&msg_arrive))
+   {
+      NRF_LOG_ERROR("Push mesasage mesh tp queue failed");
+      gw_mesh_msq_t rx_msg;
+      app_mesh_gw_queue_pop(&rx_msg);
+      app_mesh_gw_queue_push(&msg_arrive);
+   }
+   else
+   {
+      
+   }
+   if(p_beacon_msg->msg_type == APP_MSG_TYPE_NO_ALARM)
+   {
+
+   }
+   else{
+
+   }
+}
+
+
+void app_beacon_add_receive_data_cb(beacon_data_callback_t *p_cb)
+{
+}
+
+
+void app_mesh_polling_handle()
+{
+  gw_mesh_msq_t rx_message = {0};
+  if(app_mesh_gw_queue_pop(&rx_message))
+  {
+    NRF_LOG_ERROR("Cannot get message from queue\r\n");
+  }
+  else
+  {
+    NRF_LOG_INFO("");
+  }
+}
+
+
+/*Fake data function to test */
+
+#if(DEV_TEST)
+static uint8_t fake_count = 0;
+void fake_insert_new_data()
+{
+   app_beacon_data_t m_fake;
+   static uint8_t mac_fake[6] = {11, 22, 33 , 44 ,55 ,66};
+   m_fake.is_data_valid = 1;
+   m_fake.beacon_tid.value = 0;
+   //m_fake.device_type = 1;
+   memcpy(m_fake.device_mac, mac_fake, 6);
+   app_beacon_queue_write(&m_fake);
+   mac_fake[5]++;
+}
+void fake_insert_duplicate_data()
+{
+   app_beacon_data_t m_fake;
+   uint8_t mac_fake[6] = {11, 22, 33 , 44 ,55 ,66};
+   m_fake.is_data_valid = 1;
+   m_fake.beacon_tid.value = 0;
+   //m_fake.device_type = 1;
+   memcpy(m_fake.device_mac, mac_fake, 6);
+   app_beacon_queue_write(&m_fake);
+}
+void fake_send_data()
+{
+  app_beacon_data_t m_fake;
+  app_beacon_queue_read(&m_fake);
+}
+
+
+
+#endif

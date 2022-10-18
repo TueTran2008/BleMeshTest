@@ -12,8 +12,15 @@
 #include "DataDefine.h"
 #include "ble_uart_service.h"
 #include "app_sef_provision.h"
-
-
+#include "app_wdt.h"
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
+#include "ble_config.h"
+#include "flash_if.h"
+#include "app_mesh_check_duplicate.h"
+#include "app_mesh_gateway_msg.h"
+#include "app_mesh_message_queue.h"
+#include "app_mesh_process_data.h"
 
 #define RTT_INPUT_POLL_PERIOD_MS    (1000)
 APP_TIMER_DEF(m_rtt_timer);
@@ -22,6 +29,9 @@ APP_TIMER_DEF(m_rtt_timer);
 extern mesh_network_info_t gateway_info;
 extern user_on_off_client_t m_client;
 extern void flash_save_gateway_info(mesh_network_info_t *p_network);
+extern void fake_insert_new_data();
+extern void fake_send_data();
+extern void fake_insert_duplicate_data();
 //extern void advertising_start(void);
 //extern void advertising_stop(void);
 #endif
@@ -37,6 +47,7 @@ static void rtt_input_handler(int key)
 }
 void read_buffer_timeout(void *p_args)
 { 
+  app_wdt_feed();
   model_transition_t transition_params;
   user_on_off_msg_set_t set_packet;
   static uint8_t tid = 0;
@@ -59,6 +70,27 @@ void read_buffer_timeout(void *p_args)
     uint32_t sequence_number = 0;
     app_get_sequence_number_and_iv_index(&iv_index, &sequence_number);
   }
+  if(strstr(rtt_buffer.buffer, "MESH_RESET"))
+  {
+    mesh_core_clear(NULL);
+  }
+  if(strstr(rtt_buffer.buffer, "INSERT_NEW"))
+  {
+    fake_insert_new_data();
+  }
+  if(strstr(rtt_buffer.buffer, "BEACON_READ"))
+  {
+    app_beacon_data_t beacon;
+    app_queue_mesh_read_node(&beacon);
+  }
+  if(strstr(rtt_buffer.buffer, "INSERT_DUPLI"))
+  {
+    fake_insert_duplicate_data();
+  }
+  if(strstr(rtt_buffer.buffer, "READ"))
+  {
+    fake_send_data();
+  }
   if(strstr(rtt_buffer.buffer, "GENERATE"))
   {
     uint8_t app_key[16];
@@ -66,17 +98,18 @@ void read_buffer_timeout(void *p_args)
     app_generate_random_keys(app_key, net_key);
     //app_gateway_get_current_info();
   }
-  if(strstr(rtt_buffer.buffer,"STARTADV"))
+  if(strstr(rtt_buffer.buffer,"ENTER_PAIR"))
   {
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "User start advertising\r\n");
-   ble_service_advertising_start();
-   scan_stop();
+    NRF_LOG_INFO("User start advertising\r\n");
+    NRF_LOG_FLUSH();
+    app_ble_enter_pair_mode();
+    
   }
-  if(strstr(rtt_buffer.buffer,"STOPADV"))
+  if(strstr(rtt_buffer.buffer,"EXIT_PAIR"))
   {
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "User stop advertising\r\n");
-    ble_service_advertising_stop();
-    scan_start();
+    NRF_LOG_INFO("User stop advertising\r\n");
+    NRF_LOG_FLUSH();
+    app_ble_exit_pair_mode();
   }
 
   if(strstr(rtt_buffer.buffer,"BLETX"))
@@ -87,12 +120,26 @@ void read_buffer_timeout(void *p_args)
       uart_handle((void*)buffer_temp);
     }
   }
-  if(strstr(rtt_buffer.buffer, "SAVE"))
+  if(strstr(rtt_buffer.buffer, "SAVE_FLASH"))
   {
-    //CopyParameter(ptr_temp, buffer_temp,'(', ')');  
-    //{
-    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Save gateway info::::: JUST LOG\r\n");
-    //}
+    app_flash_save_config_parameter();
+  }
+  if(strstr(rtt_buffer.buffer, "GET_FLASH"))
+  {
+    app_flash_get_config_parameter();
+  }
+  if(strstr(rtt_buffer.buffer, "SET_LAMP"))
+  {
+    static bool set_lamp_value = false;
+    if(set_lamp_value)
+    {
+      set_lamp_value = false;
+    }
+    else
+    {
+      set_lamp_value = true;
+    }
+    app_mesh_publish_set_lamp(0xC005, set_lamp_value);
   }
   if(strstr(rtt_buffer.buffer, "SET"))
   {
@@ -123,9 +170,9 @@ void read_buffer_timeout(void *p_args)
     //tid = 0;
     uint32_t status = NRF_SUCCESS;
     tid = 0;
-    set_packet.on_off = state;
-    set_packet.pwm_period = duty_cycle;
-    set_packet.tid = tid;
+    //set_packet.on_off = state;
+    //set_packet.pwm_period = duty_cycle;
+    //set_packet.tid = tid;
 
     if(m_is_send_unack == false)
     {
@@ -159,7 +206,7 @@ void rtt_input_init(rtt_uart_service_handle_t p_callback)
 {
     uart_handle = p_callback;
     ERROR_CHECK(app_timer_create(&m_rtt_timer, APP_TIMER_MODE_REPEATED, read_buffer_timeout));
-    ERROR_CHECK(app_timer_start(m_rtt_timer, 10000, NULL));
+    ERROR_CHECK(app_timer_start(m_rtt_timer, 1000, NULL));
     rtt_input_enable(rtt_input_handler, 100);
 }
 

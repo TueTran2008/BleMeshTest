@@ -36,14 +36,30 @@
 #include "ble_uart_service.h"
 #include "user_input.h"
 #include "app_sef_provision.h"
-
-
+#include "app_wdt.h"
+#include "led_driver.h"
+#include "rtc.h"
 
 extern void task_test_flash(void *p_args);
 
 static void init_variables()
 {
+  //uint16_t sub_add = 0xC005;
   xSystem.status.is_device_adv = false;
+  xSystem.led_driver = led_driver;
+  /*Read From Flash Data :D*/
+  //FlashParameter_t Read_from_flash;
+  //xSystem.flash_parameter.config_parameter.AlarmConfig.Name.EnableSyncAlarm = 1;
+  /*TODO Implement Read from Flash Saved Information*/
+  //memcpy(&xSystem.flash_parameter.pair_information.topic_all, &sub_add, sizeof(sub_add));
+  /**/
+  mesh_network_info_t gateway_info;
+  gateway_info.unicast_address.address_start = LOCAL_ADDRESS_START;
+  gateway_info.unicast_address.count = ACCESS_ELEMENT_COUNT;
+    /**<Copy Gateway Address>*/
+  memcpy(&xSystem.network_info.unicast_address, &gateway_info.unicast_address, sizeof(gateway_info.unicast_address));
+  
+  NRF_LOG_INFO("Size of flash parameter: %d\r\n", sizeof(xSystem.flash_parameter));
 }
 
 
@@ -51,22 +67,32 @@ extern void spi_main(void);
 /**@brief Application main function.
  */
 int main(void)
-{
+{ 
+    init_variables();
+
     ble_uart_service_init();
+
     ble_mesh_stack_initialize();
+    /*Include Mesh*/
     ble_mesh_start();
+
+    app_wdt_init();
+
     rtt_input_init(NULL);
-    app_self_provision(m_client.model_handle, xSystem.network_info.app_key, xSystem.network_info.net_key, xSystem.network_info.unicast_address);
+    /*Init Input Output Gpio*/
+    //app_input_init();
+
+    //xSystem.led_driver.Init();
+
+    //RTC_Init();
+    
     spi_main();
     for (;;)
-    // Enter main loop.
     {
+        NRF_LOG_FLUSH();
         (void)sd_app_evt_wait();
     }
 }
-//DSM_APP_MAX
-
-
 /**
  * @}
  */

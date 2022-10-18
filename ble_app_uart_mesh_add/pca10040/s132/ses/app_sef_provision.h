@@ -4,13 +4,13 @@
 #include "access_config.h"
 
 #define LOCAL_ADDRESS_START 0x0001
-#define MESH_TOPIC_ALL 0xC001
-#define MESH_TOPIC_CONTROL 0xC002   /*Gateway send to this topic*/
-#define MESH_TOPIC_WARNING 0xC003   /*Gateway control, all node sub*/
-#define MESH_TOPIC_REPORT  0xC004   /*Gateway sub, Node send*/
+#define MESH_TOPIC_ALL 0xC005
+#define MESH_TOPIC_CONTROL 0xC006   /*Gateway send to this topic*/
+#define MESH_TOPIC_WARNING 0xC007   /*Gateway control, all node sub*/
+#define MESH_TOPIC_REPORT  0xC008   /*Gateway sub, Node send*/
 
-#define MESH_TOPIC_CONTROL_ACK 0xC005 /*Node ping*/
-#define MESH_TOPIC_WARNING_ACK 0xC006
+#define MESH_TOPIC_CONTROL_ACK 0xC009 /*Node ping*/
+#define MESH_TOPIC_WARNING_ACK 0xC0010
 /*Netkey*/
 /*Netkey*/
 //#define APP_NETKEY {0x8C, 0x5C, 0x10, 0x23, 0xC9, 0x77, 0x8D, 0xFA, 0xC3, 0x69, 0x9F, 0x1C, 0x9E, 0x4A, 0x25, 0x28}
