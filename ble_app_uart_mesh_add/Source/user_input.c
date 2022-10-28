@@ -21,6 +21,10 @@
 #include "app_mesh_gateway_msg.h"
 #include "app_mesh_message_queue.h"
 #include "app_mesh_process_data.h"
+#include "rtc.h"
+#include "nrf_log_ctrl.h"
+
+
 
 #define RTT_INPUT_POLL_PERIOD_MS    (1000)
 APP_TIMER_DEF(m_rtt_timer);
@@ -32,6 +36,7 @@ extern void flash_save_gateway_info(mesh_network_info_t *p_network);
 extern void fake_insert_new_data();
 extern void fake_send_data();
 extern void fake_insert_duplicate_data();
+extern uint32_t getcounter(void);
 //extern void advertising_start(void);
 //extern void advertising_stop(void);
 #endif
@@ -47,7 +52,7 @@ static void rtt_input_handler(int key)
 }
 void read_buffer_timeout(void *p_args)
 { 
-  app_wdt_feed();
+  
   model_transition_t transition_params;
   user_on_off_msg_set_t set_packet;
   static uint8_t tid = 0;
@@ -141,6 +146,12 @@ void read_buffer_timeout(void *p_args)
     }
     app_mesh_publish_set_lamp(0xC005, set_lamp_value);
   }
+  if(strstr(rtt_buffer.buffer, "MESH_RECONFIG"))
+  {
+    uint8_t appkey[16] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+    uint8_t netkey[16] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+    app_mesh_reprovision_from_server(appkey, netkey);
+  }
   if(strstr(rtt_buffer.buffer, "SET"))
   {
     ptr_temp = strstr(rtt_buffer.buffer, "DUTY");
@@ -164,16 +175,71 @@ void read_buffer_timeout(void *p_args)
       __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "STATE:%d\r\n", state);
     }
   }
+  if(strstr(rtt_buffer.buffer, "BUZZER_TOGGLE"))
+  {
+    xSystem.led_driver.Toggle(BUZZER_PIN_INDEX);
+  }
+  if(strstr(rtt_buffer.buffer, "LED_TOGGLE"))
+  {
+    xSystem.led_driver.Toggle(LED_ALARM_INDEX);
+  }
+  if(strstr(rtt_buffer.buffer, "RTC_SET"))
+  {
+    uint8_t ptr_temp[128] = {0};
+    CopyParameter(rtt_buffer.buffer, ptr_temp,'(', ')');
+    uint32_t timestamp = atoi(ptr_temp);
+    NRF_LOG_WARNING("Set time stamp: %u\r\n", timestamp);
+    RTC_UpdateTimeFromServer(timestamp);
+  }
+  if(strstr(rtt_buffer.buffer, "GET_MAC"))
+  {
+    NRF_LOG_INFO("Manually get MAC address");
+    NRF_LOG_HEXDUMP_INFO(app_ble_get_mac(), 6);
+  }
+  if(strstr(rtt_buffer.buffer, "REPROVISION_TRUE"))
+  {
+    app_unit_test_reprosivion(true);
+  }
+  if(strstr(rtt_buffer.buffer, "REPROVISION_FALSE"))
+  {
+    app_unit_test_reprosivion(false);
+  }
+  if(strstr(rtt_buffer.buffer, "MODEL_TEST"))
+  {
+        uint32_t status = 0;
+       user_on_off_msg_set_t tx_msg_params = {0};
+       tx_msg_params.tid = 1;
+       tx_msg_params.len = 10;
+       tx_msg_params.data = "Hello";
+
+       model_transition_t tx_transtion;
+       status = unit_test_model_layer(&m_client, &tx_msg_params,&tx_transtion, 2);
+       if(status)
+       {
+         NRF_LOG_INFO("Periodic publish mesh message - error code: %d", status);
+       }
+  }
+  if(strstr(rtt_buffer.buffer, "RTC_GET"))
+  {
+    //uint32_t timestamp = getcounter();
+    //NRF_LOG_INFO("Timestamp:%u", timestamp);
+    DateTime_t get_datetime;
+    get_datetime = RTC_GetDateTime();
+    NRF_LOG_ERROR("Get datetime\n%d/%d/%d\n%d:%d:%u",
+                  get_datetime.Day,
+                  get_datetime.Month,
+                  get_datetime.Year,
+                  get_datetime.Hour,
+                  get_datetime.Minute,
+                  get_datetime.Second);
+
+  }
   memset(rtt_buffer.buffer, 0, sizeof(rtt_buffer.buffer));
   if(m_allow_publish_count >=2)
   {
     //tid = 0;
     uint32_t status = NRF_SUCCESS;
     tid = 0;
-    //set_packet.on_off = state;
-    //set_packet.pwm_period = duty_cycle;
-    //set_packet.tid = tid;
-
     if(m_is_send_unack == false)
     {
       __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Start Send ACK MSG - Model_Handle:%d\r\n", m_client.model_handle);
@@ -200,14 +266,15 @@ void read_buffer_timeout(void *p_args)
   {
     return;
   }
+
 }
 
 void rtt_input_init(rtt_uart_service_handle_t p_callback)
 {
     uart_handle = p_callback;
     ERROR_CHECK(app_timer_create(&m_rtt_timer, APP_TIMER_MODE_REPEATED, read_buffer_timeout));
-    ERROR_CHECK(app_timer_start(m_rtt_timer, 1000, NULL));
-    rtt_input_enable(rtt_input_handler, 100);
+    ERROR_CHECK(app_timer_start(m_rtt_timer, 5000, NULL));
+    rtt_input_enable(rtt_input_handler, 10);
 }
 
 

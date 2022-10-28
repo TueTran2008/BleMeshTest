@@ -9,6 +9,9 @@
 #include "DataDefine.h"
 #include "DataDefine.h"
 #include "app_sef_provision.h"
+
+void ble_load_mac_address(void);
+
 void ble_uart_service_init();
 
 void ble_service_advertising_start(void);
@@ -53,8 +56,17 @@ uint8_t *app_ble_get_mac();
  * @retval     
  */
 void app_ble_load_config_paramter();
+/**@brief Function for sending the mesh network information
+ *
+ * @details 
+ */
+void app_node_send_nus_data();
 
 
+uint8_t* app_filter_sensor_value(uint8_t *p_data, uint16_t length);
+
+
+void app_handle_sensor_data(void *p_data);
 //void app_beacon_queue_read(app_beacon_data_t *p_beacon_data);
 
 //void app_beacon_queue_write(app_beacon_data_t *p_beacon_data);

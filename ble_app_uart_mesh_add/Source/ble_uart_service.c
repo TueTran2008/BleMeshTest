@@ -22,6 +22,8 @@
 #include "app_util_platform.h"
 #include "bsp_btn_ble.h"
 #include "nrf_pwr_mgmt.h"
+#include "nrf_gpiote.h"
+#include "nrfx_gpiote.h"
 
 #if defined (UART_PRESENT)
 #include "nrf_uart.h"
@@ -54,6 +56,7 @@
 #include "ble_advdata.h"
 #include "app_mesh_check_duplicate.h"
 #include "flash_if.h"
+#include "lna_pa.h"
 System_t xSystem;
 
 static void node_nus_data_handler(ble_nus_evt_t *p_evt);
@@ -61,6 +64,8 @@ static void node_nus_data_handler(ble_nus_evt_t *p_evt);
 /*****************************************************************************
  * MACROS
  *****************************************************************************/
+#define NODE_ADDRESSED_PROTOCOL 0
+
 #define MESH_SOC_OBSERVER_PRIO 0
 
 #define APP_BLE_CONN_CFG_TAG            1                                           /**< A tag identifying the SoftDevice BLE configuration. */
@@ -85,24 +90,17 @@ static void node_nus_data_handler(ble_nus_evt_t *p_evt);
 #define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
 #define UART_TX_BUF_SIZE                256                                         /**< UART TX buffer size. */
-#define UART_RX_BUF_SIZE                256                                         /**< UART RX buffer size. */
+#define UART_RX_BUF_SIZE                256   
+
+                                      /**< UART RX buffer size. */
 
 /*IMPLEMENT nRF5 Macros*/
 BLE_NUS_DEF(m_nus, NRF_SDH_BLE_TOTAL_LINK_COUNT);                                   /**< BLE NUS service instance. */
 NRF_BLE_GATT_DEF(m_gatt);                                                           /**< GATT module instance. */
 NRF_BLE_QWR_DEF(m_qwr);                                                             /**< Context for the Queued Write module.*/
 BLE_ADVERTISING_DEF(m_advertising);                                                 /**< Advertising module instance. */
-
-
-//BLE_NUS_C_DEF(m_ble_nus_c);                                             /**< BLE Nordic UART Service (NUS) client instance. */
-//NRF_BLE_GATT_DEF(m_gatt);                                               /**< GATT module instance. */
-//BLE_DB_DISCOVERY_DEF(m_db_disc);                                        /**< Database discovery module instance. */
-NRF_BLE_SCAN_DEF(m_scan);                                               /**< Scanning Module instance. */
-/*NRF_BLE_GQ_DEF(m_ble_gatt_queue,                                        /**< BLE GATT Queue instance. */
-               //NRF_SDH_BLE_CENTRAL_LINK_COUNT,
-               //NRF_BLE_GQ_QUEUE_SIZE);*/
-
-
+APP_TIMER_DEF(pair_timer);
+NRF_BLE_SCAN_DEF(m_scan);    
 /*****************************************************************************
  * Static variables
  *****************************************************************************/
@@ -129,20 +127,44 @@ static uint8_t m_device_mac[6] = {0};
  *****************************************************************************/
 void advertising_stop();
 void app_beacon_queue_read(app_beacon_data_t *p_beacon_data);
-
 void app_beacon_queue_write(app_beacon_data_t *p_beacon_data);
-static uint8_t* app_filter_sensor_value(uint8_t *p_data, uint16_t length);
+//static uint8_t* app_filter_sensor_value(uint8_t *p_data, uint16_t length);
 static inline bool app_check_valid_mac(uint8_t *mac);
-static void app_handle_sensor_data(void *p_data);
+//static void app_handle_sensor_data(void *p_data);
 static inline bool app_check_valid_token(uint16_t token);
 static uint32_t mesh_pair_info_packet_create(uint8_t *p_out_buffer, uint32_t out_buffer_len, bool is_exchange_address, uint8_t msg_id);
-
+static void pair_mode_timeout(void *p_args);
 /*****************************************************************************
  * Private function
  *****************************************************************************/
+static void pair_mode_timeout(void *p_args)
+{
+  
+  if(xSystem.status.beacon_pair_info.pair_success)
+  {
+    
+  }
+  else
+  {
+    /**/
+    NRF_LOG_ERROR("Pair Timeout\r\n");
+    app_ble_exit_pair_mode();
+  }
+  //app_timer_stop();
+}
 void app_ble_enter_pair_mode()
 {
+  static bool m_is_timer_create = false;
+  if(m_is_timer_create == false)
+  {
+    m_is_timer_create = true;
+    APP_ERROR_CHECK(app_timer_create(&pair_timer, APP_TIMER_MODE_SINGLE_SHOT, pair_mode_timeout));
+  }
+  /*Create timer 20s to monitor pair state*/
+
+  APP_ERROR_CHECK(app_timer_start(pair_timer, 2000000, NULL));
   xSystem.is_in_pair_mode = true;
+  xSystem.status.beacon_pair_info.pair_success = false;
   scan_stop();
   ble_service_advertising_start();
 }
@@ -150,7 +172,7 @@ void app_ble_exit_pair_mode()
 {
   xSystem.is_in_pair_mode = false;
   ble_service_advertising_stop();
-  scan_start();
+  //scan_start();
 }
 
 
@@ -363,11 +385,7 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
     switch (ble_adv_evt)
     {
         case BLE_ADV_EVT_FAST:
-            err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING);
-            APP_ERROR_CHECK(err_code);
-            break;
-        case BLE_ADV_EVT_IDLE:
-            sleep_mode_enter();
+            NRF_LOG_INFO("Device in Advertising mode");
             break;
         default:
             break;
@@ -396,6 +414,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 
         case BLE_GAP_EVT_DISCONNECTED:
             __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"BLE Disconnected\r\n");
+            nrfx_gpiote_out_clear(SFUL01_LED_ALARM_PIN);
             /**<Reset to state of adv beacuse of ble_adv_on_disconnect_disabled = true>*/
             xSystem.status.is_device_adv = false;
             xSystem.is_in_pair_mode = false;
@@ -442,27 +461,25 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
                                              BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
             APP_ERROR_CHECK(err_code);
             break;
-        case BLE_GAP_EVT_ADV_REPORT:
-        {
-            //__LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "Data Packet", p_gap_evt->params.adv_report.data.p_data, p_gap_evt->params.adv_report.data.len);
-            uint8_t *p_data = NULL;
-            p_data = app_filter_sensor_value(p_gap_evt->params.adv_report.data.p_data, p_gap_evt->params.adv_report.data.len);
-            if(p_data != NULL)
-            {
-              app_handle_sensor_data(p_data);
-            }
-        }
-            break;
+        //case BLE_GAP_EVT_ADV_REPORT:
+        //{
+        //    uint8_t *p_data = NULL;
+        //    p_data = app_filter_sensor_value(p_gap_evt->params.adv_report.data.p_data, p_gap_evt->params.adv_report.data.len);
+        //    if(p_data != NULL)
+        //    {
+        //      app_handle_sensor_data(p_data);
+        //    }
+        //}
+        //    break;
         default:
             // No implementation needed.
             break;
     }
 }
 
-//static void mesh_soc_evt_handler(uint32_t evt_id, void * p_context)
-//{
-//    nrf_mesh_on_sd_evt(evt_id);
-//}
+/*
+  @brief BLE stack implementation passes to mesh stack
+*/
 static void mesh_soc_evt_handler(uint32_t evt_id, void * p_context)
 {
     nrf_mesh_on_sd_evt(evt_id);
@@ -507,8 +524,6 @@ void gatt_evt_handler(nrf_ble_gatt_t * p_gatt, nrf_ble_gatt_evt_t const * p_evt)
                   p_gatt->att_mtu_desired_central,
                   p_gatt->att_mtu_desired_periph);
 }
-
-
 /**@brief Function for initializing the GATT library. */
 void gatt_init(void)
 {
@@ -521,6 +536,27 @@ void gatt_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
+/**@brief Function for sending the mesh network information
+ *
+ * @details 
+ */
+void app_node_send_nus_data()
+{
+  uint32_t err_code = 0;
+  uint8_t ret_message[sizeof(pair_info_t) + 1];
+  uint16_t length = sizeof(ret_message);
+  mesh_pair_info_packet_create(ret_message, length, false, PAIR_ID_GATEWAY_ACCEPT_PAIR_REQUEST);  
+  err_code = ble_nus_data_send(&m_nus, (uint8_t*)&ret_message, &length, m_conn_handle);
+  NRF_LOG_INFO("Send gateway info through BLE CCCD\r\n");
+  if ((err_code != NRF_ERROR_INVALID_STATE) &&
+      (err_code != NRF_ERROR_RESOURCES) &&
+      (err_code != NRF_ERROR_NOT_FOUND))
+  {
+    NRF_LOG_INFO("Send nus data error: 0x%02x\r\n", err_code);
+    APP_ERROR_CHECK(err_code);
+  }
+}
+/**/
 static void node_nus_data_handler(ble_nus_evt_t *p_evt)
 {
   uint32_t err_code = NRF_SUCCESS;
@@ -537,8 +573,14 @@ static void node_nus_data_handler(ble_nus_evt_t *p_evt)
           __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO,"Beacon MAC", p_request_key->mac , 6);/**<6 is the size of mac address*/
           m_is_node_request_data = 1;
           NRF_LOG_INFO("Node Notification request\r\n");
+          memcpy(xSystem.status.beacon_pair_info.device_mac, p_request_key->mac, 6);
+          xSystem.status.beacon_pair_info.device_type = p_request_key->device_type;
+
+#if(!NODE_ADDRESSED_PROTOCOL)
+          /**/
           if(m_is_node_request_data)
           {
+            /*
             uint8_t ret_message[sizeof(pair_info_t) + 1];
             uint16_t length = sizeof(ret_message);
             mesh_pair_info_packet_create(ret_message, length, false, PAIR_ID_GATEWAY_ACCEPT_PAIR_REQUEST);  
@@ -550,9 +592,13 @@ static void node_nus_data_handler(ble_nus_evt_t *p_evt)
             {
                 NRF_LOG_INFO("Send nus data error: 0x%02x\r\n", err_code);
                 APP_ERROR_CHECK(err_code);
-            }
+            }*/
+            app_node_send_nus_data();
             m_is_node_request_data = 0;
           }
+#else 
+          
+#endif
         }
         else
         {
@@ -562,7 +608,8 @@ static void node_nus_data_handler(ble_nus_evt_t *p_evt)
           /*Config AUTO Stop Adverting if disconnected =>*/
           xSystem.status.is_device_adv = false;
           xSystem.is_in_pair_mode = 0;
-          scan_start();
+          xSystem.status.beacon_pair_info.pair_success = true;
+          //scan_start();
         }
 
     }
@@ -678,8 +725,6 @@ void ble_service_advertising_start(void)
       __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Already stop ADV\r\n");
     }
 }
-
-
 /** @brief  Set Default mesh key
  *
  * @param[out]   none 
@@ -706,7 +751,7 @@ static uint32_t app_mesh_set_default_key(uint8_t *app_key, uint8_t *net_key)
  *
  * @retval        none
  */
-static void ble_load_mac_address()
+void ble_load_mac_address()
 {
     m_device_mac[0] = ((NRF_FICR->DEVICEADDR1 & 0x0000FF00) >> 8) | 0b11000000;
     m_device_mac[1] = NRF_FICR->DEVICEADDR1 & 0x000000FF;
@@ -714,7 +759,7 @@ static void ble_load_mac_address()
     m_device_mac[3] = ((NRF_FICR->DEVICEADDR0 & 0x00FF0000) >> 16);
     m_device_mac[4] = ((NRF_FICR->DEVICEADDR0 & 0x0000FF00) >> 8);
     m_device_mac[5] = ((NRF_FICR->DEVICEADDR0 & 0x000000FF) >> 0);
-    __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "MAC ADDRESS", m_device_mac, sizeof(m_device_mac));
+   // NRF_LOG_INFO("MAC ADDRESS", m_device_mac, sizeof(m_device_mac));
 }
 /** @brief
  *
@@ -789,7 +834,8 @@ static uint32_t mesh_pair_info_packet_create(uint8_t *p_out_buffer, uint32_t out
     return NRF_ERROR_NO_MEM;
   }
   memcpy(pair_info.pair_mac, app_ble_get_mac(), sizeof(pair_info.pair_mac));
-
+  /**/
+ 
   pair_info.next_unicast_addr = xSystem.flash_parameter.pair_information.next_unicast_addr;
   pair_info.exchange_pair_addr = xSystem.flash_parameter.pair_information.exchange_pair_addr;
   
@@ -880,30 +926,30 @@ static void scan_evt_handler(scan_evt_t const * p_scan_evt)
          case NRF_BLE_SCAN_EVT_SCAN_TIMEOUT:
          {
              __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Scan timed out.");
-             scan_start();
+             //scan_start();
          } break;
          //p_scan_evt->params.filter_match.p_adv_report
          
          case NRF_BLE_SCAN_EVT_FILTER_MATCH:
          {
-            uint8_t *p_manufacture_data = NULL;
-            adv_scan_data_t *p_adv_scan_data = nrf_ble_get_scan_plus_adv_buffer();
+            //uint8_t *p_manufacture_data = NULL;
+            //adv_scan_data_t *p_adv_scan_data = nrf_ble_get_scan_plus_adv_buffer();
            
 
-            //adv_debug = *(p_scan_evt->params.filter_match.p_adv_report);
-            __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Found Match Beacon\r\nRSSI%ddBm\r\nPeer Address:0x%08x\r\nData Direct Address:0x%08x\r\nData_ID:%d\r\n"
-                                                                         , p_scan_evt->params.filter_match.p_adv_report->rssi
-                                                                         , p_scan_evt->params.filter_match.p_adv_report->peer_addr
-                                                                         , p_scan_evt->params.filter_match.p_adv_report->direct_addr
-                                                                         , p_scan_evt->params.filter_match.p_adv_report->data_id
-                                                                         );
-             __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "\r\nFilter Match Data Packet", p_adv_scan_data->data_buffer, p_adv_scan_data->index);
-             /*Let's get beacon data :D*/
-             uint16_t offset;
-             uint16_t len;
-             len = ble_advdata_search(p_adv_scan_data->data_buffer,  p_adv_scan_data->index, &offset,BLE_GAP_AD_TYPE_MANUFACTURER_SPECIFIC_DATA);
-             p_manufacture_data = &p_adv_scan_data->data_buffer[offset];
-             __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "\r\n Manufacture Specific Data", p_manufacture_data, len);
+            ////adv_debug = *(p_scan_evt->params.filter_match.p_adv_report);
+            //__LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Found Match Beacon\r\nRSSI%ddBm\r\nPeer Address:0x%08x\r\nData Direct Address:0x%08x\r\nData_ID:%d\r\n"
+            //                                                             , p_scan_evt->params.filter_match.p_adv_report->rssi
+            //                                                             , p_scan_evt->params.filter_match.p_adv_report->peer_addr
+            //                                                             , p_scan_evt->params.filter_match.p_adv_report->direct_addr
+            //                                                             , p_scan_evt->params.filter_match.p_adv_report->data_id
+            //                                                             );
+            // __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "\r\nFilter Match Data Packet", p_adv_scan_data->data_buffer, p_adv_scan_data->index);
+            // /*Let's get beacon data :D*/
+            // uint16_t offset;
+            // uint16_t len;
+            // len = ble_advdata_search(p_adv_scan_data->data_buffer,  p_adv_scan_data->index, &offset,BLE_GAP_AD_TYPE_MANUFACTURER_SPECIFIC_DATA);
+            // p_manufacture_data = &p_adv_scan_data->data_buffer[offset];
+            // __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "\r\n Manufacture Specific Data", p_manufacture_data, len);
          }
          break;
 
@@ -937,9 +983,12 @@ void app_ble_load_config_paramter()
   if(/**/!app_flash_get_config_parameter())
   {
 
-    NRF_LOG_INFO("Get Flash Config Paramter\r\n");
+    ble_load_mac_address();
+    NRF_LOG_INFO("Get Flash Config Paramter appkey 1st - netkey 2nd");
     memcpy(xSystem.network_info.app_key, xSystem.flash_parameter.pair_information.key.appkey, 16);
     memcpy(xSystem.network_info.net_key, xSystem.flash_parameter.pair_information.key.netkey, 16);
+    NRF_LOG_HEXDUMP_INFO(xSystem.network_info.app_key, 16);
+    NRF_LOG_HEXDUMP_INFO(xSystem.network_info.net_key, 16);
     read_from_flash = true;
   }
   else
@@ -987,23 +1036,22 @@ void ble_uart_service_init()
 {
     log_nrf_init();
     NRF_LOG_INFO("NRF LOG INIT\r\n");
-    __LOG_INIT(LOG_SRC_APP | LOG_SRC_TRANSPORT | LOG_SRC_ACCESS, LOG_LEVEL_INFO | LOG_LEVEL_DBG3 | LOG_LEVEL_DBG2 | LOG_LEVEL_DBG1, LOG_CALLBACK_DEFAULT);
+    __LOG_INIT(LOG_SRC_APP/*| LOG_SRC_TRANSPORT | LOG_SRC_ACCESS/*| LOG_SRC_NETWORK |LOG_SRC_DSM*/, LOG_LEVEL_INFO | LOG_LEVEL_DBG3 | LOG_LEVEL_DBG2 | LOG_LEVEL_DBG1, LOG_CALLBACK_DEFAULT);
     __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "----- BLE UART GATEWAY SERVICE Initialize-----\n");
     /*<set default mesh key for static variables>*/
-    
-
     /*nRF5 SDK Init*/
     //uart_init();
-
     timers_init();
+
     ble_uart_stack_init();
+         pa_lna_gpio_config(24, 23);
     gap_ble_params_init();
     gatt_init();
     services_init();
     advertising_init();
     conn_ble_params_init();
-    scan_init();
-    scan_start();
+    //scan_init();
+    //scan_start();
 }
 
 
@@ -1079,8 +1127,12 @@ bool advdata_part_name_find(ble_gap_evt_adv_report_t const * p_adv_rp,
  *
  * @retval Pointer point to Beacon message
  */
-static uint8_t* app_filter_sensor_value(uint8_t *p_data, uint16_t length)
+uint8_t* app_filter_sensor_value(uint8_t *p_data, uint16_t length)
 {
+  if(xSystem.status.init_done == false)
+  {
+    return NULL;
+  }
   if(p_data == NULL || length == 0)
   {
     return NULL;
@@ -1105,8 +1157,10 @@ static uint8_t* app_filter_sensor_value(uint8_t *p_data, uint16_t length)
   {
     /*if get the correct company => return to the correct data type*/
     /*<2 is length of manufacture data >*/
+    //NRF_LOG_HE("\r\n Manufacture Specific Data", p_manufacture_data, len - 2);
+    //NRF_LOG_WARNING("Manufacture Specific Data");
+    //NRF_LOG_HEXDUMP_INFO(p_manufacture_data, len - 2);
     p_manufacture_data = p_manufacture_data + 2;
-    //__LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO, "\r\n Manufacture Specific Data", p_manufacture_data, len - 2);
     return p_manufacture_data;
   }
 }
@@ -1122,11 +1176,14 @@ static inline bool app_check_valid_mac(uint8_t *p_mac)
 {
   if(memcmp(p_mac, app_ble_get_mac(), 6) == 0)
   {
-    
     return true;
   }
   else
   {
+    NRF_LOG_ERROR("This GW MAC");
+    NRF_LOG_HEXDUMP_ERROR(app_ble_get_mac(), 6);
+    NRF_LOG_ERROR("BEACON GW");
+    NRF_LOG_HEXDUMP_ERROR(p_mac, 6);
     NRF_LOG_ERROR("Scanned Beacon Device doesn't belong to this network => reprovision beacon\r\n");
     return false;
   }
@@ -1148,6 +1205,8 @@ static inline bool app_check_valid_token(uint16_t token)
   }
   else
   {
+    //NRF_LOG_ERROR("This GW");
+    //NRF_LOG_HEXDUMP_ERROR();
     return false;
   }
 }
@@ -1235,17 +1294,18 @@ void app_beacon_queue_read(app_beacon_data_t *p_beacon_data)
  *
  * @retval 
  */
-static void app_handle_sensor_data(void *p_data)
+void app_handle_sensor_data(void *p_data)
 {
    app_beacon_data_t this_beacon;
    app_beacon_t *p_beacon_msg = (app_beacon_t*)p_data;
-   if(!app_check_valid_mac(p_beacon_msg->uuid.detail.gw_mac))
-   {
-      return;
-   }
+   //NRF_LOG_HEXDUMP_INFO(p_beacon_msg, sizeof(app_beacon_t));
    if(!app_check_valid_token(p_beacon_msg->token))
    {  
       /**/
+      return;
+   }
+   if(!app_check_valid_mac(p_beacon_msg->uuid.detail.gw_mac))
+   {
       return;
    }
    app_transaction_t tid_arrive;
@@ -1272,6 +1332,7 @@ static void app_handle_sensor_data(void *p_data)
    alarm_struct_sos.fw_version = p_beacon_msg->uuid.detail.beacon_tid.info.version;
    alarm_struct_sos.msg_type = p_beacon_msg->msg_type;
    alarm_struct_sos.reserve.raw = p_beacon_msg->uuid.detail.temperature.value;
+   //alarm_struct_sos.
   
    /*Gateway structure*/
    gw_mesh_msq_t msg_arrive;
@@ -1354,6 +1415,9 @@ void fake_send_data()
   app_beacon_data_t m_fake;
   app_beacon_queue_read(&m_fake);
 }
+
+
+
 
 
 

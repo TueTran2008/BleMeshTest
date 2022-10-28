@@ -1,6 +1,38 @@
 <!DOCTYPE CrossStudio_Session_File>
 <session>
- <Bookmarks/>
+ <Bookmarks>
+  <BookmarkItem objectName="" line="8354" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="32" extra="#define PPI_CONFIG_DEBUG_COLOR 0" color="5"/>
+  <BookmarkItem objectName="" line="2557" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="2" extra="#ifndef NRFX_PPI_ENABLED" color="5"/>
+  <BookmarkItem objectName="" line="2558" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="3" extra="#define NRFX_PPI_ENABLED 1" color="5"/>
+  <BookmarkItem objectName="" line="2560" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="4" extra="// &lt;e> NRFX_PPI_CONFIG_LOG_ENABLED - Enables logging in the module." color="5"/>
+  <BookmarkItem objectName="" line="2562" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="5" extra="#ifndef NRFX_PPI_CONFIG_LOG_ENABLED" color="5"/>
+  <BookmarkItem objectName="" line="2563" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="6" extra="#define NRFX_PPI_CONFIG_LOG_ENABLED 0" color="5"/>
+  <BookmarkItem objectName="" line="2565" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="7" extra="// &lt;o> NRFX_PPI_CONFIG_LOG_LEVEL - Default Severity level" color="5"/>
+  <BookmarkItem objectName="" line="2573" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="8" extra="#ifndef NRFX_PPI_CONFIG_LOG_LEVEL" color="5"/>
+  <BookmarkItem objectName="" line="2574" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="9" extra="#define NRFX_PPI_CONFIG_LOG_LEVEL 3" color="5"/>
+  <BookmarkItem objectName="" line="2577" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="10" extra="// &lt;o> NRFX_PPI_CONFIG_INFO_COLOR - ANSI escape code prefix." color="5"/>
+  <BookmarkItem objectName="" line="2589" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="11" extra="#ifndef NRFX_PPI_CONFIG_INFO_COLOR" color="5"/>
+  <BookmarkItem objectName="" line="2590" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="12" extra="#define NRFX_PPI_CONFIG_INFO_COLOR 0" color="5"/>
+  <BookmarkItem objectName="" line="2593" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="13" extra="// &lt;o> NRFX_PPI_CONFIG_DEBUG_COLOR - ANSI escape code prefix." color="5"/>
+  <BookmarkItem objectName="" line="2605" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="14" extra="#ifndef NRFX_PPI_CONFIG_DEBUG_COLOR" color="5"/>
+  <BookmarkItem objectName="" line="2606" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="15" extra="#define NRFX_PPI_CONFIG_DEBUG_COLOR 0" color="5"/>
+  <BookmarkItem objectName="" line="2879" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="16" extra="// &lt;i> initial transfer, done when a playback is started via PPI," color="5"/>
+  <BookmarkItem objectName="" line="4788" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="17" extra="// &lt;q> PPI_ENABLED - nrf_drv_ppi - PPI peripheral driver - legacy layer" color="5"/>
+  <BookmarkItem objectName="" line="4791" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="18" extra="#ifndef PPI_ENABLED" color="5"/>
+  <BookmarkItem objectName="" line="4792" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="19" extra="#define PPI_ENABLED 0" color="5"/>
+  <BookmarkItem objectName="" line="4919" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="20" extra="// &lt;i> initial transfer, done when a playback is started via PPI," color="5"/>
+  <BookmarkItem objectName="" line="8308" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="21" extra="// &lt;e> PPI_CONFIG_LOG_ENABLED - Enables logging in the module." color="5"/>
+  <BookmarkItem objectName="" line="8310" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="22" extra="#ifndef PPI_CONFIG_LOG_ENABLED" color="5"/>
+  <BookmarkItem objectName="" line="8311" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="23" extra="#define PPI_CONFIG_LOG_ENABLED 0" color="5"/>
+  <BookmarkItem objectName="" line="8313" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="24" extra="// &lt;o> PPI_CONFIG_LOG_LEVEL - Default Severity level" color="5"/>
+  <BookmarkItem objectName="" line="8321" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="25" extra="#ifndef PPI_CONFIG_LOG_LEVEL" color="5"/>
+  <BookmarkItem objectName="" line="8322" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="26" extra="#define PPI_CONFIG_LOG_LEVEL 3" color="5"/>
+  <BookmarkItem objectName="" line="8325" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="27" extra="// &lt;o> PPI_CONFIG_INFO_COLOR - ANSI escape code prefix." color="5"/>
+  <BookmarkItem objectName="" line="8337" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="28" extra="#ifndef PPI_CONFIG_INFO_COLOR" color="5"/>
+  <BookmarkItem objectName="" line="8338" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="29" extra="#define PPI_CONFIG_INFO_COLOR 0" color="5"/>
+  <BookmarkItem objectName="" line="8341" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="30" extra="// &lt;o> PPI_CONFIG_DEBUG_COLOR - ANSI escape code prefix." color="5"/>
+  <BookmarkItem objectName="" line="8353" column="-1" path="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/pca10040/s132/config/sdk_config.h" number="31" extra="#ifndef PPI_CONFIG_DEBUG_COLOR" color="5"/>
+ </Bookmarks>
  <Breakpoints groups="Breakpoints" active_group="Breakpoints">
   <Exceptions set="MemManage;UsageFault_Coprocessor;UsageFault_CheckingError;UsageFault_StateError;BusFault;ExceptionEntryReturnFault;HardFault"/>
  </Breakpoints>
@@ -29,6 +61,7 @@
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;Mesh_Acess"/>
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;Mesh_Bearer"/>
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;Mesh_Common"/>
+  <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;Mesh_Configuration Model"/>
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;Mesh_Core"/>
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;Mesh_Core;Mesh_External"/>
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;Mesh_Health_Model"/>
@@ -42,7 +75,6 @@
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;nRF_Drivers"/>
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;nRF_Libraries"/>
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;nRF_Log"/>
-  <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;nRF_Segger_RTT"/>
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;nRF_SoftDevice"/>
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;nRF_SPIS"/>
   <ProjectSessionItem path="ble_app_uart_pca10040_s132;ble_app_uart_pca10040_s132;RSSI_Model"/>
@@ -70,17 +102,11 @@
  </TraceWindow>
  <Watch1>
   <Watches active="1" update="Never">
-   <Watchpoint expression="mesh_tx_evt" name="mesh_tx_evt" radix="-1" linenumber="412" filename="../../../Source/ble_config.c"/>
-   <Watchpoint expression="xSystem" name="xSystem" radix="-1" linenumber="349" filename="../../../Source/ble_config.c"/>
-   <Watchpoint expression="sub_add" name="sub_add" radix="-1" linenumber="46" filename="../../../main.c"/>
-   <Watchpoint expression="p_beacon_msg" name="p_beacon_msg" radix="-1" linenumber="1241" filename="../../../Source/ble_uart_service.c"/>
-   <Watchpoint expression="p_data" name="p_data" radix="-1" linenumber="147" filename="../../../Source/app_mesh_process_data.c"/>
-   <Watchpoint expression="p_manufacture_data" name="p_manufacture_data" radix="-1" linenumber="1108" filename="../../../Source/ble_uart_service.c"/>
-   <Watchpoint expression="msg_arrive" name="msg_arrive" radix="-1" linenumber="1277" filename="../../../Source/ble_uart_service.c"/>
-   <Watchpoint expression="rx_mesh" name="rx_mesh" radix="-1" linenumber="406" filename="../../../Source/app_mesh_process_data.c"/>
-   <Watchpoint expression="MESH_CONFIG_ENTRY_MAX_SIZE" name="MESH_CONFIG_ENTRY_MAX_SIZE" radix="16" linenumber="104" filename="../../../../../../components/Mesh/mesh_sdk/mesh/core/api/mesh_config_entry.h"/>
-   <Watchpoint expression="pair_info_t" name="pair_info_t" radix="16" linenumber="198" filename="../../../../../../components/Mesh/mesh_sdk/examples/user_liight_switch/include/DataDefine.h"/>
-   <Watchpoint expression="pair_info" name="pair_info" radix="-1" linenumber="801" filename="../../../Source/ble_uart_service.c"/>
+   <Watchpoint expression="metadata" name="metadata" radix="-1" linenumber="2048" filename="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/transport.c"/>
+   <Watchpoint expression="p_params" name="p_params" radix="-1" linenumber="2049" filename="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/transport.c"/>
+   <Watchpoint expression="tx_params" name="tx_params" radix="-1" linenumber="430" filename="../../../../../../components/Mesh/mesh_sdk/mesh/access/src/access.c"/>
+   <Watchpoint expression="tx_replay_cache_debug" name="tx_replay_cache_debug" radix="-1" linenumber="1339" filename="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/transport.c"/>
+   <Watchpoint expression="p_buffer" name="p_buffer" radix="-1" linenumber="110" filename="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/network.c"/>
   </Watches>
  </Watch1>
  <Watch2>
@@ -93,18 +119,28 @@
   <Watches active="0" update="Never"/>
  </Watch4>
  <Files>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="238" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../Source/user_spi.c" selected="0" top="219" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="28" y="139" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../Source/user_input.c" selected="0" top="115" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="14" y="360" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/Source/user_spi.c" useBinaryEdit="0" left="0" path="../../../Source/app_mesh_process_data.c" selected="0" top="334" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="482" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../Source/ble_config.c" selected="0" top="425" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="68" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../main.c" selected="0" top="54" codecName=""/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="99" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/libraries/util/app_error_weak.c" selected="0" top="76" codecName=""/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="34" y="209" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/main.c" useBinaryEdit="0" left="0" path="../../../Source/ble_config.c" selected="0" top="184" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="46" y="1772" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/components/Mesh/mesh_sdk/mesh/core/src/nrf_mesh.c" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/transport.c" selected="0" top="1768" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="6" y="220" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/Source/ble_config.c" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/examples/user_liight_switch/Source/user_on_off_client.c" selected="0" top="182" codecName=""/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="288" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/mesh/access/src/access.c" selected="0" top="281" codecName=""/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="231" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/nrf_mesh.c" selected="0" top="231" codecName=""/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="113" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/components/Mesh/mesh_sdk/mesh/core/src/transport.c" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/network.c" selected="0" top="94" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="99" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/components/Mesh/mesh_sdk/mesh/core/src/network.c" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/core_tx.c" selected="0" top="91" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="311" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/components/Mesh/mesh_sdk/mesh/core/src/network.c" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/net_packet.c" selected="0" top="289" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../Source/user_spi.c" selected="0" top="54" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="1186" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/Source/ble_config.c" useBinaryEdit="0" left="0" path="../../../Source/ble_uart_service.c" selected="0" top="1163" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="494" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../Source/adc_button.c" selected="0" top="477" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="64" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../main.c" selected="0" top="63" codecName=""/>
   <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/examples/common/src/rtt_input.c" selected="0" top="0" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="2" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../Source/app_mesh_process_data.h" selected="0" top="0" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/examples/user_liight_switch/Source/Utilities.c" selected="0" top="171" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="915" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/Source/user_spi.c" useBinaryEdit="0" left="0" path="../../../Source/ble_uart_service.c" selected="0" top="858" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="184" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/examples/user_liight_switch/include/DataDefine.h" selected="0" top="174" codecName="Default"/>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="188" useTextEdit="1" openedFrom="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/ble_peripheral/ble_app_uart_mesh_add/Source/app_mesh_process_data.c" useBinaryEdit="0" left="0" path="../../../Source/DataDefine.h" selected="0" top="172" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="134" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../Source/user_input.c" selected="0" top="116" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="13" y="322" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/heartbeat.c" selected="0" top="312" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="3072" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/models/foundation/config/src/config_server.c" selected="0" top="3030" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="85" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/mesh/core/src/event.c" selected="0" top="72" codecName=""/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../config/sdk_config.h" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../../../../components/Mesh/mesh_sdk/examples/user_liight_switch/client/include/nrf_mesh_config_app.h" selected="0" top="63" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../Source/app_mesh_process_data.h" selected="0" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="507" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../Source/app_mesh_process_data.c" selected="0" top="483" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="68" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../Source/ble_uart_service.h" selected="0" top="42" codecName="Default"/>
  </Files>
- <ARMCrossStudioWindow activeProject="ble_app_uart_pca10040_s132" fileDialogDefaultFilter="*.c;*.cpp;*.cxx;*.cc;*.h;*.hpp;*.hxx" autoConnectTarget="J-Link" buildConfiguration="Debug" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/modules/nrfx/drivers/src" debugSearchPath="" autoConnectCapabilities="3711"/>
+ <ARMCrossStudioWindow activeProject="ble_app_uart_pca10040_s132" fileDialogDefaultFilter="*.c;*.cpp;*.cxx;*.cc;*.h;*.hpp;*.hxx" autoConnectTarget="J-Link" buildConfiguration="Debug" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="D:/NRF51_BLE_MESH_SDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/components/libraries/led_softblink" debugSearchPath="" autoConnectCapabilities="3711"/>
 </session>

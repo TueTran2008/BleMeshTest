@@ -39,7 +39,10 @@
 #include "app_wdt.h"
 #include "led_driver.h"
 #include "rtc.h"
-
+#include "adc_button.h"
+#include "app_btn.h"
+#include "nrfx_ppi.h"
+#include "led_driver.h"
 extern void task_test_flash(void *p_args);
 
 static void init_variables()
@@ -47,50 +50,60 @@ static void init_variables()
   //uint16_t sub_add = 0xC005;
   xSystem.status.is_device_adv = false;
   xSystem.led_driver = led_driver;
-  /*Read From Flash Data :D*/
-  //FlashParameter_t Read_from_flash;
-  //xSystem.flash_parameter.config_parameter.AlarmConfig.Name.EnableSyncAlarm = 1;
-  /*TODO Implement Read from Flash Saved Information*/
-  //memcpy(&xSystem.flash_parameter.pair_information.topic_all, &sub_add, sizeof(sub_add));
-  /**/
   mesh_network_info_t gateway_info;
   gateway_info.unicast_address.address_start = LOCAL_ADDRESS_START;
   gateway_info.unicast_address.count = ACCESS_ELEMENT_COUNT;
     /**<Copy Gateway Address>*/
+  xSystem.status.init_done = false;
   memcpy(&xSystem.network_info.unicast_address, &gateway_info.unicast_address, sizeof(gateway_info.unicast_address));
-  
-  NRF_LOG_INFO("Size of flash parameter: %d\r\n", sizeof(xSystem.flash_parameter));
 }
-
-
 extern void spi_main(void);
+extern void spi_reset_buff(void);
 /**@brief Application main function.
- */
+*/
 int main(void)
 { 
+    ret_code_t err_code;
+    //err_code = nrf_drv_ppi_init();
+    //APP_ERROR_CHECK(err_code);
     init_variables();
+    //ble_load_mac_address();
 
     ble_uart_service_init();
-
+    
     ble_mesh_stack_initialize();
-    /*Include Mesh*/
+     /*Start the Mesh Stack*/
     ble_mesh_start();
-
+     /*Initialize Peripherals*/
     app_wdt_init();
 
     rtt_input_init(NULL);
-    /*Init Input Output Gpio*/
-    //app_input_init();
 
-    //xSystem.led_driver.Init();
+    app_input_init();
 
-    //RTC_Init();
+    xSystem.led_driver.Init();
+
+    RTC_Init();
     
     spi_main();
+/*Comment when using dev kit to debug*/
+#if(1)
+    adc_init();
+#endif
+    /*<Supply 3V3 for smart module>*/
+    xSystem.led_driver.Set(POWER_3V3_INDEX, false);
+    /*<Supply on 3V8 for smart module>*/
+    xSystem.led_driver.Set(POWER_3V8_INDEX, true);
+    /**/
     for (;;)
     {
+        /*Code no Blocking in background-loop*/
         NRF_LOG_FLUSH();
         (void)sd_app_evt_wait();
+        spi_reset_buff();
+        app_wdt_feed();
+        /*Scanning int while 1 - Maybe Button Callback must create timer interrupt to handle */
+        app_btn_scan(NULL);
     }
 }
 /**

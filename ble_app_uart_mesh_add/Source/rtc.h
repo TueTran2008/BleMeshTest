@@ -1,7 +1,16 @@
 #ifndef _RTC_H_
 #define _RTC_H_
 
-#include "DataDefine.h"
+//#include "DataDefine.h"
+typedef struct
+{
+    uint8_t Year;
+    uint8_t Month;
+    uint8_t Day;
+    uint8_t Hour;
+    uint8_t Minute;
+    uint8_t Second;
+} DateTime_t;
 /**
   * @brief  Initiatlize the RTC module
   * @param  None
@@ -19,8 +28,8 @@
   * @param  None
   * @retval None
   */
- DateTime_t RTC_GetDateTime (void);
 /**
+ DateTime_t RTC_GetDateTime (void);
   * @brief  Lay bien dem trong RTC
   * @param  None
   * @retval None
@@ -40,4 +49,23 @@
   * @retval 1 neu valid, 0 neu invalid
   */
  uint8_t ValidDateTime(DateTime_t ThoiGian);
+
+ /**
+  * @brief  Change the timestamp of current RTC
+  * @param  None
+  * @retval 
+  */
+ void RTC_UpdateTimeFromServer(uint32_t unixTimeStamp);
+ /**
+  * @brief  Get date time from RTC.
+  * @param  None
+  * @retval None
+ */
+DateTime_t RTC_GetDateTime (void);
+/**
+  * @brief  Lay bien dem trong RTC
+  * @param  None
+  * @retval None
+  */
+uint32_t RTC_getcounter(void);
 #endif

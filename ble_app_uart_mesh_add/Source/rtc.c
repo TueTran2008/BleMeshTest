@@ -2,7 +2,11 @@
 #include "nrf_drv_rtc.h"
 #include "nrf_drv_clock.h"
 #include "DataDefine.h"
+#include "nrf_rtc.h"
 #include "rtc.h"
+#include "nrf_log.h"
+#include "led_driver.h"
+#include <time.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -28,25 +32,41 @@ static uint32_t StructToCounter(DateTime_t *t );
 /*****************************************************************************
  * Implementation function
  *****************************************************************************/
+/*****************************************************************************/
+/**
+  * @brief  Lay bien dem trong RTC
+  * @param  None
+  * @retval None
+  */
+uint32_t RTC_getcounter(void)
+{        
+    return CurrentCounter;
+}
+ /*
+  Config RTC for 3s Wakeup
+ */
  void RTC_Init()
 {
   nrf_drv_rtc_config_t RtcConfig = NRF_DRV_RTC_DEFAULT_CONFIG;
 	
-  RtcConfig.prescaler = 32767;
-	
+  RtcConfig.prescaler = 4095;
+
   uint32_t err = nrf_drv_clock_init();
+
   if (err != NRF_ERROR_MODULE_ALREADY_INITIALIZED)
     APP_ERROR_CHECK(err);
   nrf_drv_clock_lfclk_request(NULL);
   
   err = nrf_drv_rtc_init(&RtcInstance, &RtcConfig, RtcHandler);
   APP_ERROR_CHECK(err);
+  
   nrf_drv_rtc_tick_enable(&RtcInstance ,true);
 
-  err = nrf_drv_rtc_cc_set(&RtcInstance, 0, (uint32_t)24, true);
+  err = nrf_drv_rtc_cc_set(&RtcInstance, 0, (uint32_t)12, true);
   APP_ERROR_CHECK(err);
 
   nrf_drv_rtc_enable(&RtcInstance);
+  NRF_LOG_INFO("RTC Start Count: %ums - RTC Counter:%u", nrf_get_tick(), nrf_rtc_counter_get(RtcInstance.p_reg));
 }
 
 
@@ -57,77 +77,38 @@ static uint32_t StructToCounter(DateTime_t *t );
   */
 void RTC_SetDateTime (DateTime_t Input, int32_t GMT_Adjust)
 {	
-	CurrentCounter = StructToCounter(&Input) + GMT_Adjust;
+  CurrentCounter = StructToCounter(&Input) + GMT_Adjust;
 }
-///*****************************************************************************/
-///**
-//  * @brief  Set date time for RTC
-//  * @param  2008-12-16 10:00:00
-//  * @retval None
-//  */
-//static void UpdateTimeFromServer (uint8_t *Buffer)
-//{
-//	DateTime_t DateTime;
-//	
-//	DateTime.Second	= GetNumberFromString(17, (char *)Buffer);
-//	DateTime.Minute = GetNumberFromString(14, (char *)Buffer);
-//	DateTime.Hour = GetNumberFromString(11, (char *)Buffer);
-//	
-//	DateTime.Day = GetNumberFromString(8, (char *)Buffer);
-//	DateTime.Month = GetNumberFromString(5, (char *)Buffer);
-//	DateTime.Year = GetNumberFromString(0, (char *)Buffer) - 2000;
-//	    
-//	SetDateTime(DateTime);
-//}
-
-static void UpdateTimeFromServer (uint32_t unixTimeStamp)
+void RTC_UpdateTimeFromServer (uint32_t unixTimeStamp)
 {
-    //DateTime_t DateTime;
+    DateTime_t DateTime;
+    if (!unixTimeStamp)
+        return;
+    time_t rawtime = unixTimeStamp;
+    struct tm ts;
+    ts = *localtime(&rawtime);
+    NRF_LOG_INFO("NTP time now: %02d:%02d:%02d  %02d-%02d-%d\r\n", ts.tm_hour + 7 , ts.tm_min, ts.tm_sec, ts.tm_mday + 1 , ts.tm_mon + 1, ts.tm_year + 1900 - 70);
+    DateTime.Year = (ts.tm_year + 1900) % 2000;		//Year - 1900
+    DateTime.Month = ts.tm_mon + 1;		// Month, where 0 = jan
+    DateTime.Day = ts.tm_mday;		// Day of the month
+    DateTime.Hour = ts.tm_hour;
+    DateTime.Minute = ts.tm_min;
+    DateTime.Second = ts.tm_sec;
 
-    //if(!unixTimeStamp) 
-    //    return;
-    
-    //// Convert to GMT +7. 25200 = 7 * 3600
-    //int64_t rawtime = unixTimeStamp + 25200;
-    //struct tm ts;
-    
-    //// Format time, "ddd yyyy-mm-dd hh:mm:ss zzz"
-    //ts = *localtime(&rawtime);
-
-    //NRF_LOG_INFO("Time now: %02d:%02d:%02d  %02d-%02d-%d\r\n", ts.tm_hour, ts.tm_min, ts.tm_sec, ts.tm_mday, ts.tm_mon + 1, ts.tm_year + 1900);
-
-    //DateTime.Year = (ts.tm_year + 1900) % 2000;		//Year - 1900
-    //DateTime.Month = ts.tm_mon + 1;		// Month, where 0 = jan
-    //DateTime.Day = ts.tm_mday;		// Day of the month
-    //DateTime.Hour = ts.tm_hour;
-    //DateTime.Minute = ts.tm_min;
-    //DateTime.Second = ts.tm_sec;
-
-    //// Convert to GMT +7. 25200 = 7 * 3600
-    //SetDateTime(DateTime, 0);
+    RTC_SetDateTime(DateTime, 0);
 }
-
 /*****************************************************************************/
 /**
   * @brief  Get date time from RTC.
   * @param  None
   * @retval None
-  */
+ */
 DateTime_t RTC_GetDateTime (void)
 {	
     CounterToStruct(CurrentCounter, &LastRtcTime, 1);
     return LastRtcTime;
 }
-/*****************************************************************************/
-/**
-  * @brief  Lay bien dem trong RTC
-  * @param  None
-  * @retval None
-  */
-uint32_t RTC_GetCounter(void)
-{        
-    return CurrentCounter;
-}
+
 /*****************************************************************************/
 /**
   * @brief  Cap nhat thoi gian vao bien tam.
@@ -137,6 +118,7 @@ uint32_t RTC_GetCounter(void)
  void RTC_Tick(uint32_t diff_sec)
 {
     CurrentCounter += diff_sec;
+    //NRF_LOG_WARNING("Diff Sec:%u\r\n", diff_sec);
 //    CounterToStruct(CurrentCounter, &LastRtcTime, 1);
 }
 /*****************************************************************************/
@@ -170,11 +152,16 @@ static void RtcHandler(nrf_drv_rtc_int_type_t int_type)
 {
     if (int_type == NRF_DRV_RTC_INT_COMPARE0)
     {
-        
+        uint32_t rtc_counter = nrf_rtc_counter_get(RtcInstance.p_reg);
+        //NRF_LOG_ERROR("Systick ms: %u - Compare: %u", nrf_get_tick(), nrf_rtc_counter_get(RtcInstance.p_reg));
+        uint32_t err = nrf_drv_rtc_cc_set(&RtcInstance, 0, (uint32_t)rtc_counter + (uint32_t)12, true);
+        APP_ERROR_CHECK(err);
+        RTC_Tick(1);
     }
     else if (int_type == NRF_DRV_RTC_INT_TICK)
     {
-
+       // nrf_rtc_counter_set()
+        //NRF_LOG_INFO("Systick ms: %u - RTC Counter:%u", nrf_get_tick(), nrf_rtc_counter_get(RtcInstance.p_reg));
     }
 }
 /*******************************************************************************
@@ -189,53 +176,53 @@ static void RtcHandler(nrf_drv_rtc_int_type_t int_type)
 */
 static void CounterToStruct(uint32_t sec, DateTime_t *t, uint8_t CalYear)
 {
-	uint16_t day;
-	uint8_t year;
-	uint16_t dayofyear;
-	uint8_t leap400;
-	uint8_t month;
-	t->Second = sec % 60;
-	sec /= 60;
-	t->Minute = sec % 60;
-	sec /= 60;
-	t->Hour = sec % 24;
-	if(CalYear == 0) 
-          return;
-	day = (uint16_t)(sec / 24);
-	year = FIRSTYEAR % 100;                         // 0..99
-	leap400 = 4 - ((FIRSTYEAR - 1) / 100 & 3);      // 4, 3, 2, 1
-	for(;;)
-        {
+  uint16_t day;
+  uint8_t year;
+  uint16_t dayofyear;
+  uint8_t leap400;
+  uint8_t month;
+  t->Second = sec % 60;
+  sec /= 60;
+  t->Minute = sec % 60;
+  sec /= 60;
+  t->Hour = sec % 24;
+  if(CalYear == 0) 
+    return;
+  day = (uint16_t)(sec / 24);
+  year = FIRSTYEAR % 100;                         // 0..99
+  leap400 = 4 - ((FIRSTYEAR - 1) / 100 & 3);      // 4, 3, 2, 1
+  for(;;)
+  {
+    dayofyear = 365;
+    if((year & 3) == 0) 
+    {
+      dayofyear = 366;                                        // leap year
+      if(year == 0 || year == 100 || year == 200)
+      { // 100 year exception
+        if( --leap400 )
+        {                       // 400 year exception
           dayofyear = 365;
-          if( (year & 3) == 0 ) 
-          {
-            dayofyear = 366;                                        // leap year
-            if( year == 0 || year == 100 || year == 200 )
-            { // 100 year exception
-              if( --leap400 )
-              {                       // 400 year exception
-                dayofyear = 365;
-               }
-            }
-          }
-          if( day < dayofyear ) 
-          {
-            break;
-          }
-          day -= dayofyear;
-          year++;                                 // 00..136 / 99..235
-	}
-	t->Year = year + FIRSTYEAR / 100 * 100 - 2000; // + century
-	if( dayofyear & 1 && day > 58 )
-        {       // no leap year and after 28.2.
-          day++;                                  // skip 29.2.
-	}
-	for(month = 1; day >= DaysInMonth[month-1]; month++ ) 
-        {
-          day -= DaysInMonth[month-1];
-	}
-	t->Month = month;                               // 1..12
-	t->Day = day + 1;                              // 1..31
+        }
+      }
+    }
+    if( day < dayofyear ) 
+    {
+      break;
+    }
+    day -= dayofyear;
+    year++;                                 // 00..136 / 99..235
+  }
+  t->Year = year + FIRSTYEAR / 100 * 100 - 2000; // + century
+  if(dayofyear & 1 && day > 58 )
+  {       // no leap year and after 28.2.
+    day++;                                  // skip 29.2.
+  }
+  for(month = 1; day >= DaysInMonth[month-1]; month++ ) 
+  {
+    day -= DaysInMonth[month-1];
+  }
+  t->Month = month;                               // 1..12
+  t->Day = day + 1;                              // 1..31
 }
 /*******************************************************************************
 ** 
@@ -248,32 +235,32 @@ static void CounterToStruct(uint32_t sec, DateTime_t *t, uint8_t CalYear)
 	*/
 static uint32_t StructToCounter(DateTime_t *t )
 {
-	uint16_t i;
-	uint32_t result = 0;
-	uint16_t idx, year;
-	year = t->Year + 2000;
-	/* Calculate days of years before */
-	result = (uint32_t)year * 365;
-	if (t->Year >= 1) 
-        {
-          result += (year + 3) / 4;
-          result -= (year - 1) / 100;
-          result += (year - 1) / 400;
-	}
+  uint16_t i;
+  uint32_t result = 0;
+  uint16_t idx, year;
+  year = t->Year + 2000;
+  /* Calculate days of years before */
+  result = (uint32_t)year * 365;
+  if (t->Year >= 1) 
+  {
+    result += (year + 3) / 4;
+    result -= (year - 1) / 100;
+    result += (year - 1) / 400;
+  }
 	/* Start with 2000 a.d. */
-	result -= 730485UL;
+  result -= 730485UL;
 	/* Make month an array index */
-	idx = t->Month - 1;
-	/* Loop thru each month, adding the days */
-	for (i = 0; i < idx; i++) 
-        {
-          result += DaysInMonth[i];
-	}
+  idx = t->Month - 1;
+  /* Loop thru each month, adding the days */
+  for (i = 0; i < idx; i++) 
+  {
+    result += DaysInMonth[i];
+  }
 	/* Leap year? adjust February */
-	if (year%400 == 0 || (year%4 == 0 && year%100 !=0))
-        {
+  if (year%400 == 0 || (year%4 == 0 && year%100 !=0))
+  {
 			;
-	} 
+  } 
         else
         {
           if (t->Month > 2) 
@@ -281,7 +268,6 @@ static uint32_t StructToCounter(DateTime_t *t )
             result--;
           }
 	}
-
 	/* Add remaining days */
 	result += t->Day;
 	/* Convert to seconds, add all the other stuff */

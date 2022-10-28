@@ -48,19 +48,21 @@ static dsm_handle_t m_group_3_addres_handle = 0;
 static dsm_handle_t m_group_4_addres_handle = 0;
 
 /**<Static uniscast addresss for provisioning>*/
-static dsm_local_unicast_address_t m_start_unicast_add = {
-  .address_start = LOCAL_ADDRESS_START,
-  .count = ACCESS_ELEMENT_COUNT
- };
-static nrf_mesh_prov_provisioning_data_t provision_data = {
-  .netkey = NET_KEY,
-  .netkey_index = NET_KEY_INDEX,
-  .iv_index = 0,
-  .address = LOCAL_ADDRESS_START,
-  .flags.iv_update = false,
-  .flags.key_refresh = false
-};
-extern bool nrf_mesh_is_device_provisioned(void);
+//static dsm_local_unicast_address_t m_start_unicast_add = {
+//  .address_start = LOCAL_ADDRESS_START,
+//  .count = ACCESS_ELEMENT_COUNT
+// };
+
+// /**/
+//static nrf_mesh_prov_provisioning_data_t provision_data = {
+//  .netkey = NET_KEY,
+//  .netkey_index = NET_KEY_INDEX,
+//  .iv_index = 0,
+//  .address = LOCAL_ADDRESS_START,
+//  .flags.iv_update = false,
+//  .flags.key_refresh = false
+//};
+//extern bool nrf_mesh_is_device_provisioned(void);
 /*****************************************************************************
  * Function variables
  *****************************************************************************/
@@ -70,9 +72,14 @@ extern bool nrf_mesh_is_device_provisioned(void);
 */
 static void self_provision(uint8_t *p_app_key, uint8_t *p_netkey, dsm_local_unicast_address_t unicast_add)
 {
-   ret_code_t err_code = NRF_SUCCESS;
-  
+  ret_code_t err_code = NRF_SUCCESS;
+  dsm_local_unicast_address_t m_start_unicast_add;
+  unicast_add.address_start = 0x1000;
+  unicast_add.count = 2;
   m_start_unicast_add = unicast_add;
+  /*on for testing*/
+
+
   //__LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Last unicast address %d\r\n", last_unicast.address_start + last_unicast.count);
   memcpy(m_app_key, p_app_key, sizeof(m_app_key));
   memcpy(m_net_key, p_netkey, sizeof(m_net_key));
@@ -176,6 +183,10 @@ void app_self_provision(access_model_handle_t model_handle,
   {
     NRF_LOG_INFO("Begin Self Provision\r\n");
     self_provision(p_app_key, p_netkey, m_start_unicast_add);
+    /*Reset after self provision -> So that we can manually set the iv_index and sequence number
+      Unless net_state will change to external modify => we can't manually set the sequence number and iv index
+    */
+    mesh_core_clear(NULL);
   }
   else
   {
@@ -199,11 +210,11 @@ void app_get_sequence_number_and_iv_index(uint32_t *iv_index, uint32_t *sequence
   mesh_opt_seqnum_persist_data_t seqnum_data = {0};
   *iv_index = net_state_tx_iv_index_get();
   ret_code = mesh_config_entry_get(MESH_OPT_NET_STATE_SEQ_NUM_BLOCK_EID, &seqnum_data);
-   __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Get sequence number data from flash%d\r\n", ret_code);
+   //__LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Get sequence number data from flash%d\r\n", ret_code);
    APP_ERROR_CHECK(ret_code);
   *sequence_number = seqnum_data.next_block;
-  NRF_LOG_INFO("***) IV index :%d\r\n", *iv_index);
-  NRF_LOG_INFO("***) Sequence Number:%u\r\n", *sequence_number);
+  //NRF_LOG_INFO("***) IV index :%d\r\n", *iv_index);
+  //NRF_LOG_INFO("***) Sequence Number:%u\r\n", *sequence_number);
 }
 /** @brief
  *
@@ -312,7 +323,7 @@ void app_mesh_reprovision_from_server(uint8_t *p_appkey, uint8_t *p_netkey)
   m_subnet_handle = dsm_net_key_index_to_subnet_handle(0);
   if(p_appkey)
   {
-    mesh_key_index_t *key_index;
+    //mesh_key_index_t *key_index;
     uint32_t status = NRF_SUCCESS;
     /*Get the netkey index*/
     m_appkey_handle = dsm_appkey_index_to_appkey_handle(0);
@@ -321,8 +332,8 @@ void app_mesh_reprovision_from_server(uint8_t *p_appkey, uint8_t *p_netkey)
     APP_ERROR_CHECK(status);
     /*Add the new app key*/
     status = dsm_appkey_add(APP_KEY_INDEX, m_subnet_handle, p_appkey, &m_appkey_handle);
-    //provision_data.netkey_index++;
     APP_ERROR_CHECK(status);
+    NRF_LOG_INFO("Reconfig appkey ok\r\n");
   }
   else
   {
@@ -330,17 +341,75 @@ void app_mesh_reprovision_from_server(uint8_t *p_appkey, uint8_t *p_netkey)
   }
   if(p_netkey)
   {
+    uint8_t buffer_netkey[16];
     uint32_t status = NRF_SUCCESS;
     /*Delete the current net key*/
-    status = dsm_subnet_delete(m_subnet_handle);
-    APP_ERROR_CHECK(status);
     /*Add the new netkey*/
-    status = dsm_subnet_add(0, p_appkey, &m_subnet_handle);
+    status = dsm_subnet_update(m_subnet_handle, p_netkey);
     APP_ERROR_CHECK(status);
-    /**/
+    status = dsm_subnet_update_swap_keys(m_subnet_handle);
+    APP_ERROR_CHECK(status);
+    status = dsm_subnet_update_commit(m_subnet_handle);
+    APP_ERROR_CHECK(status);
+    NRF_LOG_INFO("Reconfig Netkey Ok\r\n");
+    status = dsm_subnet_key_get(m_subnet_handle,buffer_netkey);
+    APP_ERROR_CHECK(status);
+    __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO,"new network key",buffer_netkey, 16 );
   }
   else
   {
     NRF_LOG_WARNING("Device won't update netkey\r\n");
   }
+
+}
+
+void app_unit_test_reprosivion(bool test)
+{
+  if(test)
+  {
+    /*
+    */
+    NRF_LOG_INFO("\r\n***********TRUE************");
+    uint8_t test_appkey[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+    uint8_t test_netkey[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+    uint32_t current_sequence_number = 0;
+    uint32_t current_iv_index = 0;
+    app_mesh_reprovision_from_server(test_appkey, test_netkey);
+    app_get_sequence_number_and_iv_index(&current_iv_index, &current_sequence_number);
+    uint32_t sequen_block = (current_sequence_number / 8192) + 1;
+    NRF_LOG_INFO("Config IV Index:%d - Sequence Number Block: %d", current_iv_index, sequen_block);
+    uint32_t status = net_state_iv_index_and_seqnum_block_set(current_iv_index, false, sequen_block);
+    NRF_LOG_INFO("Set sequence number and iv index status: %d", status);
+    memcpy(xSystem.flash_parameter.pair_information.key.netkey, test_netkey, 16);
+    memcpy(xSystem.flash_parameter.pair_information.key.appkey, test_appkey, 16);
+   }
+   else
+   {
+    NRF_LOG_INFO("\r\n***********FALSE************");
+    uint8_t test_appkey[16] =
+    {	
+            0xDE, 0x06, 0x50, 0xC4, 0x48, 0x6E, 0x05,  0x14,
+            0x02, 0x29, 0x92, 0x8F, 0xCF, 0x30, 0xFE,  0xF8
+    };
+    uint8_t test_netkey[16] =
+    {
+            0xDE, 0x06, 0x50, 0xC4, 0x48, 0x6E, 0x9B, 0xA3,
+            0xBD, 0xD4, 0x82, 0x67, 0x0F, 0x35, 0x37, 0x05
+    };
+    memcpy(xSystem.flash_parameter.pair_information.key.netkey, test_netkey, 16);
+    memcpy(xSystem.flash_parameter.pair_information.key.appkey, test_appkey, 16);
+    uint32_t current_sequence_number = 0;
+    uint32_t current_iv_index = 0;
+    app_mesh_reprovision_from_server(test_appkey, test_netkey);
+    app_get_sequence_number_and_iv_index(&current_iv_index, &current_sequence_number);
+    uint32_t sequen_block = (current_sequence_number / 8192) + 1;
+    NRF_LOG_INFO("Config IV Index:%d - Sequence Number Block: %d", current_iv_index, sequen_block);
+    uint32_t status = net_state_iv_index_and_seqnum_block_set(current_iv_index, false, sequen_block);
+    NRF_LOG_INFO("Set sequence number and iv index status: %d", status);
+    
+
+    
+   }
+   app_flash_save_config_parameter();
+   mesh_core_clear(NULL);
 }

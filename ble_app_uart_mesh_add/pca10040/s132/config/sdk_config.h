@@ -2556,12 +2556,12 @@
 // <e> NRFX_PPI_ENABLED - nrfx_ppi - PPI peripheral allocator
 //==========================================================
 #ifndef NRFX_PPI_ENABLED
-#define NRFX_PPI_ENABLED 0
+#define NRFX_PPI_ENABLED 1
 #endif
 // <e> NRFX_PPI_CONFIG_LOG_ENABLED - Enables logging in the module.
 //==========================================================
 #ifndef NRFX_PPI_CONFIG_LOG_ENABLED
-#define NRFX_PPI_CONFIG_LOG_ENABLED 0
+#define NRFX_PPI_CONFIG_LOG_ENABLED 1
 #endif
 // <o> NRFX_PPI_CONFIG_LOG_LEVEL  - Default Severity level
 
@@ -2572,7 +2572,7 @@
 // <4=> Debug
 
 #ifndef NRFX_PPI_CONFIG_LOG_LEVEL
-#define NRFX_PPI_CONFIG_LOG_LEVEL 3
+#define NRFX_PPI_CONFIG_LOG_LEVEL 4
 #endif
 
 // <o> NRFX_PPI_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -2707,7 +2707,7 @@
 // <e> NRFX_PWM_ENABLED - nrfx_pwm - PWM peripheral driver
 //==========================================================
 #ifndef NRFX_PWM_ENABLED
-#define NRFX_PWM_ENABLED 0
+#define NRFX_PWM_ENABLED 1
 #endif
 // <q> NRFX_PWM0_ENABLED  - Enable PWM0 instance
 
@@ -3251,7 +3251,7 @@
 // <e> NRFX_SAADC_ENABLED - nrfx_saadc - SAADC peripheral driver
 //==========================================================
 #ifndef NRFX_SAADC_ENABLED
-#define NRFX_SAADC_ENABLED 0
+#define NRFX_SAADC_ENABLED 1
 #endif
 // <o> NRFX_SAADC_CONFIG_RESOLUTION  - Resolution
 
@@ -3261,7 +3261,7 @@
 // <3=> 14 bit
 
 #ifndef NRFX_SAADC_CONFIG_RESOLUTION
-#define NRFX_SAADC_CONFIG_RESOLUTION 1
+#define NRFX_SAADC_CONFIG_RESOLUTION 2
 #endif
 
 // <o> NRFX_SAADC_CONFIG_OVERSAMPLE  - Sample period
@@ -3316,7 +3316,7 @@
 // <4=> Debug
 
 #ifndef NRFX_SAADC_CONFIG_LOG_LEVEL
-#define NRFX_SAADC_CONFIG_LOG_LEVEL 3
+#define NRFX_SAADC_CONFIG_LOG_LEVEL 4
 #endif
 
 // <o> NRFX_SAADC_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -3531,7 +3531,7 @@
 // <e> NRFX_SPIS_CONFIG_LOG_ENABLED - Enables logging in the module.
 //==========================================================
 #ifndef NRFX_SPIS_CONFIG_LOG_ENABLED
-#define NRFX_SPIS_CONFIG_LOG_ENABLED 0
+#define NRFX_SPIS_CONFIG_LOG_ENABLED 1
 #endif
 // <o> NRFX_SPIS_CONFIG_LOG_LEVEL  - Default Severity level
 
@@ -3542,7 +3542,7 @@
 // <4=> Debug
 
 #ifndef NRFX_SPIS_CONFIG_LOG_LEVEL
-#define NRFX_SPIS_CONFIG_LOG_LEVEL 3
+#define NRFX_SPIS_CONFIG_LOG_LEVEL 4
 #endif
 
 // <o> NRFX_SPIS_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -3558,7 +3558,7 @@
 // <8=> White
 
 #ifndef NRFX_SPIS_CONFIG_INFO_COLOR
-#define NRFX_SPIS_CONFIG_INFO_COLOR 0
+#define NRFX_SPIS_CONFIG_INFO_COLOR 3
 #endif
 
 // <o> NRFX_SPIS_CONFIG_DEBUG_COLOR  - ANSI escape code prefix.
@@ -3574,7 +3574,7 @@
 // <8=> White
 
 #ifndef NRFX_SPIS_CONFIG_DEBUG_COLOR
-#define NRFX_SPIS_CONFIG_DEBUG_COLOR 0
+#define NRFX_SPIS_CONFIG_DEBUG_COLOR 77
 #endif
 
 // </e>
@@ -3809,7 +3809,7 @@
 // <e> NRFX_TIMER_ENABLED - nrfx_timer - TIMER periperal driver
 //==========================================================
 #ifndef NRFX_TIMER_ENABLED
-#define NRFX_TIMER_ENABLED 0
+#define NRFX_TIMER_ENABLED 1
 #endif
 // <q> NRFX_TIMER0_ENABLED  - Enable TIMER0 instance
 
@@ -3822,7 +3822,7 @@
 
 
 #ifndef NRFX_TIMER1_ENABLED
-#define NRFX_TIMER1_ENABLED 0
+#define NRFX_TIMER1_ENABLED 1
 #endif
 
 // <q> NRFX_TIMER2_ENABLED  - Enable TIMER2 instance
@@ -3843,7 +3843,7 @@
 
 
 #ifndef NRFX_TIMER4_ENABLED
-#define NRFX_TIMER4_ENABLED 0
+#define NRFX_TIMER4_ENABLED 4
 #endif
 
 // <o> NRFX_TIMER_DEFAULT_CONFIG_FREQUENCY  - Timer frequency if in Timer mode
@@ -4552,7 +4552,7 @@
 // <e> NRFX_WDT_ENABLED - nrfx_wdt - WDT peripheral driver
 //==========================================================
 #ifndef NRFX_WDT_ENABLED
-#define NRFX_WDT_ENABLED 0
+#define NRFX_WDT_ENABLED 1
 #endif
 // <o> NRFX_WDT_CONFIG_BEHAVIOUR  - WDT behavior in CPU SLEEP or HALT mode
 
@@ -4790,7 +4790,7 @@
 
 
 #ifndef PPI_ENABLED
-#define PPI_ENABLED 0
+#define PPI_ENABLED 1
 #endif
 
 // <e> PWM_ENABLED - nrf_drv_pwm - PWM peripheral driver - legacy layer
@@ -5279,7 +5279,7 @@
 // <e> SAADC_ENABLED - nrf_drv_saadc - SAADC peripheral driver - legacy layer
 //==========================================================
 #ifndef SAADC_ENABLED
-#define SAADC_ENABLED 0
+#define SAADC_ENABLED 1
 #endif
 // <o> SAADC_CONFIG_RESOLUTION  - Resolution
 
@@ -5289,7 +5289,7 @@
 // <3=> 14 bit
 
 #ifndef SAADC_CONFIG_RESOLUTION
-#define SAADC_CONFIG_RESOLUTION 1
+#define SAADC_CONFIG_RESOLUTION 2
 #endif
 
 // <o> SAADC_CONFIG_OVERSAMPLE  - Sample period
@@ -5520,7 +5520,7 @@
 // <e> TIMER_ENABLED - nrf_drv_timer - TIMER periperal driver - legacy layer
 //==========================================================
 #ifndef TIMER_ENABLED
-#define TIMER_ENABLED 0
+#define TIMER_ENABLED 1
 #endif
 // <o> TIMER_DEFAULT_CONFIG_FREQUENCY  - Timer frequency if in Timer mode
 
@@ -5587,7 +5587,7 @@
 
 
 #ifndef TIMER1_ENABLED
-#define TIMER1_ENABLED 0
+#define TIMER1_ENABLED 1
 #endif
 
 // <q> TIMER2_ENABLED  - Enable TIMER2 instance
@@ -5608,7 +5608,7 @@
 
 
 #ifndef TIMER4_ENABLED
-#define TIMER4_ENABLED 0
+#define TIMER4_ENABLED 4
 #endif
 
 // </e>
@@ -5941,7 +5941,7 @@
 // <e> WDT_ENABLED - nrf_drv_wdt - WDT peripheral driver - legacy layer
 //==========================================================
 #ifndef WDT_ENABLED
-#define WDT_ENABLED 0
+#define WDT_ENABLED 1
 #endif
 // <o> WDT_CONFIG_BEHAVIOUR  - WDT behavior in CPU SLEEP or HALT mode
 
@@ -6784,14 +6784,14 @@
 
 
 #ifndef LED_SOFTBLINK_ENABLED
-#define LED_SOFTBLINK_ENABLED 0
+#define LED_SOFTBLINK_ENABLED 1
 #endif
 
 // <q> LOW_POWER_PWM_ENABLED  - low_power_pwm - low_power_pwm module
 
 
 #ifndef LOW_POWER_PWM_ENABLED
-#define LOW_POWER_PWM_ENABLED 0
+#define LOW_POWER_PWM_ENABLED 1
 #endif
 
 // <e> MEM_MANAGER_ENABLED - mem_manager - Dynamic memory allocator
@@ -7561,7 +7561,7 @@
 // <i> longer one will be fragmented.
 
 #ifndef NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE
-#define NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE 64
+#define NRF_LOG_BACKEND_RTT_TEMP_BUFFER_SIZE 256
 #endif
 
 // <o> NRF_LOG_BACKEND_RTT_TX_RETRY_DELAY_MS - Period before retrying writing to RTT
@@ -7638,7 +7638,7 @@
 // <16384=> 16384
 
 #ifndef NRF_LOG_BUFSIZE
-#define NRF_LOG_BUFSIZE 1024
+#define NRF_LOG_BUFSIZE 2048
 #endif
 
 // <q> NRF_LOG_CLI_CMDS  - Enable CLI commands for the module.
@@ -8309,7 +8309,7 @@
 // <e> PPI_CONFIG_LOG_ENABLED - Enables logging in the module.
 //==========================================================
 #ifndef PPI_CONFIG_LOG_ENABLED
-#define PPI_CONFIG_LOG_ENABLED 0
+#define PPI_CONFIG_LOG_ENABLED 1
 #endif
 // <o> PPI_CONFIG_LOG_LEVEL  - Default Severity level
 
@@ -8320,7 +8320,7 @@
 // <4=> Debug
 
 #ifndef PPI_CONFIG_LOG_LEVEL
-#define PPI_CONFIG_LOG_LEVEL 3
+#define PPI_CONFIG_LOG_LEVEL 4
 #endif
 
 // <o> PPI_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8582,7 +8582,7 @@
 // <4=> Debug
 
 #ifndef SAADC_CONFIG_LOG_LEVEL
-#define SAADC_CONFIG_LOG_LEVEL 3
+#define SAADC_CONFIG_LOG_LEVEL 4
 #endif
 
 // <o> SAADC_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8622,7 +8622,7 @@
 // <e> SPIS_CONFIG_LOG_ENABLED - Enables logging in the module.
 //==========================================================
 #ifndef SPIS_CONFIG_LOG_ENABLED
-#define SPIS_CONFIG_LOG_ENABLED 0
+#define SPIS_CONFIG_LOG_ENABLED 1
 #endif
 // <o> SPIS_CONFIG_LOG_LEVEL  - Default Severity level
 
@@ -8633,7 +8633,7 @@
 // <4=> Debug
 
 #ifndef SPIS_CONFIG_LOG_LEVEL
-#define SPIS_CONFIG_LOG_LEVEL 3
+#define SPIS_CONFIG_LOG_LEVEL 4
 #endif
 
 // <o> SPIS_CONFIG_INFO_COLOR  - ANSI escape code prefix.
@@ -8665,7 +8665,7 @@
 // <8=> White
 
 #ifndef SPIS_CONFIG_DEBUG_COLOR
-#define SPIS_CONFIG_DEBUG_COLOR 0
+#define SPIS_CONFIG_DEBUG_COLOR 1
 #endif
 
 // </e>
@@ -8673,7 +8673,7 @@
 // <e> SPI_CONFIG_LOG_ENABLED - Enables logging in the module.
 //==========================================================
 #ifndef SPI_CONFIG_LOG_ENABLED
-#define SPI_CONFIG_LOG_ENABLED 0
+#define SPI_CONFIG_LOG_ENABLED 1
 #endif
 // <o> SPI_CONFIG_LOG_LEVEL  - Default Severity level
 
@@ -8684,7 +8684,7 @@
 // <4=> Debug
 
 #ifndef SPI_CONFIG_LOG_LEVEL
-#define SPI_CONFIG_LOG_LEVEL 3
+#define SPI_CONFIG_LOG_LEVEL 4
 #endif
 
 // <o> SPI_CONFIG_INFO_COLOR  - ANSI escape code prefix.

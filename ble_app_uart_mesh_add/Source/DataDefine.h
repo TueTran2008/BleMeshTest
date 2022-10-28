@@ -7,11 +7,17 @@
 
 #include "device_state_manager.h"
 #include "user_on_off_client.h"
+#include "adc_button.h"
+#include "adc_button.h"
 
 #define KEY_LENGHT    16
 #define BEACON_DEFAULT_TOKEN 0x1C345378u
 #define BEACON_ID           0x01u
 #define APP_MAX_BEACON      32
+
+
+#define HW_RF_PA_PIN                23 		//PA RX EN
+#define HW_RF_LNA_PIN               24 		//PA TX EN
 
 
 #define FIRMWARE_VERSION  001 
@@ -21,7 +27,8 @@
 
 #define MESH_APP_COMMON_INVALID_UNICAST_ADDR      (0xFFFF)
 
-
+#define APP_MESH_MIN_VALID_UNICAST_ADD    0x0001
+#define APP_MESH_MAX_VALID_UNICAST_ADD    0xFFFF
 
 
 #define APP_UNACK_MSG_REPEAT_COUNT (3)
@@ -159,12 +166,16 @@ typedef struct __attribute((packed))
     pair_info_state_t state;
 }pair_info_t;
 
+typedef struct 
+{
+   uint8_t device_mac[6];
+   uint8_t device_type;
+   bool pair_success;
+}beacon_pair_info_t;
 
 typedef union {
     struct Alarms_t {
         uint8_t EnableBuzzer : 1;
-        //uint8_t EnableAlarmCall : 1;
-        //uint8_t EnableAlarmSMS : 1;
         uint8_t EnableSyncAlarm : 1;
         uint8_t EnableAlarmPower : 1;
         uint8_t reserver : 5;
@@ -249,7 +260,9 @@ typedef struct __attribute((packed))
 /*<>*/
 typedef struct
 {
-  bool   is_device_adv; 
+  bool   is_device_adv;
+  beacon_pair_info_t beacon_pair_info;
+  bool   init_done;
 }global_status_t;
 /*Data structure of a global variable*/
 typedef struct  __attribute((packed))
@@ -264,6 +277,7 @@ typedef struct  __attribute((packed))
   LED_DRVIER_T led_driver;
   access_model_handle_t client_model;
   app_beacon_data_t Node_list[APP_MAX_BEACON];
+
 }System_t;
 
 
@@ -354,6 +368,7 @@ typedef struct __attribute((packed))
   uint8_t in_pair_mode;
   uint32_t sequence_number;
   uint32_t iv_index;
+  queue_button_t button_state;
 }app_beacon_ping_msg_t;
 
 typedef struct __attribute((packed))
@@ -410,7 +425,8 @@ typedef struct
   uint8_t config_seqnumber :1;
   uint8_t config_speaker : 1;
   uint8_t config_alarm : 1;
-  uint8_t reseverd     : 2;
+  uint8_t config_mac   : 1;
+  uint8_t reseverd     : 1;
   /*Structure padding*/
   uint8_t netkey[16];
   uint8_t appkey[16];
@@ -420,20 +436,18 @@ typedef struct
   uint32_t iv_index;
   uint32_t sequence_number;
   //uint8_t config_centermutetime
+  uint8_t mac[6];
 }GD32Config_t;
 
 typedef struct
 {
-    uint8_t Year;
-    uint8_t Month;
-    uint8_t Day;
-    uint8_t Hour;
-    uint8_t Minute;
-    uint8_t Second;
-} DateTime_t;
+  uint16_t unicast_add;
+}pair_response_info_t;
+
+
+
 typedef void(*beacon_data_callback_t)(void *p_args);
 extern System_t xSystem;
-//extern user_on_off_client_t m_client;
 typedef void(*app_flash_get_success_cb_t)(void* p_arg);
 
 

@@ -5,6 +5,7 @@
 #include "nrf_log.h"
 #include "DataDefine.h"
 #include "ble_uart_service.h"
+#include "app_button.h"
 
 NRF_QUEUE_DEF(gw_mesh_msq_t, app_mesh_msg_queue, MAX_MESSAGE_RECEIVE_FROM_MESH_NETWORK_IN_QUEUE, NRF_QUEUE_MODE_OVERFLOW);
 
@@ -24,10 +25,10 @@ NRF_QUEUE_DEF(gw_mesh_msq_t, app_mesh_msg_queue, MAX_MESSAGE_RECEIVE_FROM_MESH_N
 *
 
 ***********************/
-#warning "FAKE Battery Value :V"
+//#warning "FAKE Battery Value :V"
 static inline uint8_t GET_BATTERY()
 {
-  return 99;
+  return app_adc_get_battery_percent();
 }
 
 void app_mesh_gw_create_message(uint8_t msg_type, uint8_t msg_id, uint8_t mesh_id, gw_mesh_msq_t *p_out)

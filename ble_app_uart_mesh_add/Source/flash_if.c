@@ -109,31 +109,6 @@ static void gateway_info_deletter(mesh_config_entry_id_t id)
 
 uint32_t app_start_flash(app_flash_get_success_cb_t p_callback)
 {
-  //if(p_callback)
-  //{
-  //  app_get_done = p_callback; 
-  //}
-  //__LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Starting application \n");
-  //mesh_config_entry_id_t idx = GATEWAY_INFO_ENTRY_ID;
-
-  ///**/
-  //for (uint8_t i = 0; i < GATEWAY_INFO_MAX_VALUE_STORE; i++)
-  //{
-  //  mesh_network_info_t gateway_info;
-
-  //  uint32_t status = mesh_config_entry_get(idx, (void*)&gateway_info);
-  //  if (status == NRF_SUCCESS)
-  //  {
-  //      __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO,"NETWORK_KEY:\r\n",m_gateway_info.net_key, 16);
-  //      __LOG_XB(LOG_SRC_APP, LOG_LEVEL_INFO,"APPLICATION_KEY:\r\n",m_gateway_info.app_key, 16);
-  //      __LOG(LOG_SRC_APP, LOG_LEVEL_INFO,"Unicast address:0x%04x\r\n", m_gateway_info.unicast_address.address_start);  
-  //  }
-  //  else
-  //  {
-  //      __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Fail to read mesh network infomation => Please add this node to server to config");
-  //  }
-  //  idx.record++;
-  // }
 }
 
 void flash_read_gateway_info(mesh_network_info_t *p_network)

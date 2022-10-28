@@ -44,4 +44,6 @@ uint32_t app_mesh_add_new_publish_topic(bool remove_address, uint16_t new_addres
 
 void app_mesh_reprovision_from_server(uint8_t *p_appkey, uint8_t *p_netkey);
 
+void app_unit_test_reprosivion(bool test);
+
 #endif

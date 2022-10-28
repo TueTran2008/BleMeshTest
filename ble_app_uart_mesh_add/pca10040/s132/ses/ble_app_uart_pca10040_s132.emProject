@@ -72,6 +72,11 @@
       <file file_name="../../../../../../components/libraries/strerror/nrf_strerror.c" />
       <file file_name="../../../../../../components/libraries/uart/retarget.c" />
       <file file_name="../../../../../../components/libraries/ringbuf/nrf_ringbuf.c" />
+      <file file_name="../../../../../../modules/nrfx/drivers/src/nrfx_saadc.c" />
+      <file file_name="../../../../../../modules/nrfx/drivers/src/nrfx_timer.c" />
+      <file file_name="../../../../../../../../Beacon_Output_File/SFUL01/nRF5_SDK_17.0.0_9d13099/modules/nrfx/drivers/src/nrfx_ppi.c" />
+      <file file_name="../../../../../../components/libraries/led_softblink/led_softblink.c" />
+      <file file_name="../../../../../../components/libraries/low_power_pwm/low_power_pwm.c" />
     </folder>
     <folder Name="None">
       <file file_name="../../../../../../modules/nrfx/mdk/ses_startup_nrf52.s" />
@@ -94,16 +99,20 @@
       <file file_name="../../../../../../modules/nrfx/drivers/src/nrfx_rng.c" />
       <file file_name="../../../../../../components/libraries/queue/nrf_queue.c" />
       <file file_name="../../../../../../modules/nrfx/drivers/src/nrfx_rtc.c" />
+      <file file_name="../../../../../../integration/nrfx/legacy/nrf_drv_saadc.h" />
+      <file file_name="../../../../../../modules/nrfx/drivers/src/nrfx_adc.c" />
+      <file file_name="../../../../../../integration/nrfx/legacy/nrf_drv_ppi.c" />
+      <file file_name="../../../../../../modules/nrfx/drivers/src/nrfx_wdt.c" />
     </folder>
     <folder Name="Board Support">
       <file file_name="../../../../../../components/libraries/bsp/bsp.c" />
       <file file_name="../../../../../../components/libraries/bsp/bsp_btn_ble.c" />
     </folder>
     <folder Name="Application">
-      <file file_name="../../../main.c" />
-      <file file_name="../config/sdk_config.h" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/user_liight_switch/client/include/nrf_mesh_config_app.h" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/examples/user_liight_switch/client/include/app_config.h" />
+      <file file_name="../../../main.c" />
+      <file file_name="../config/sdk_config.h" />
     </folder>
     <folder Name="nRF_Segger_RTT">
       <file file_name="../../../../../../external/segger_rtt/SEGGER_RTT.c" />
@@ -134,7 +143,11 @@
       <file file_name="../../../../../../components/softdevice/common/nrf_sdh_ble.c" />
       <file file_name="../../../../../../components/softdevice/common/nrf_sdh_soc.c" />
     </folder>
-    <configuration LIBRARY_IO_TYPE="RTT" Name="Debug" />
+    <configuration
+      LIBRARY_IO_TYPE="RTT"
+      Name="Debug"
+      gcc_omit_frame_pointer="No"
+      gcc_optimization_level="None" />
     <folder Name="Mesh_Acess">
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/access/src/access.c" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/access/src/access_publish.c" />
@@ -158,8 +171,8 @@
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/bearer/src/instaburst_tx.c" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/bearer/src/mesh_pa_lna.c" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/bearer/src/radio_config.c" />
-      <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/bearer/src/rssi_filter.c" />
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/bearer/src/scanner.c" />
+      <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/bearer/src/rssi_filter.c" />
     </folder>
     <folder Name="Mesh_Provisioning">
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/prov/src/nrf_mesh_prov.c" />
@@ -255,7 +268,9 @@
       <folder Name="Segger Startup Files">
         <file file_name="$(StudioDir)/source/thumb_crt0.s" />
       </folder>
-      <file file_name="../../../Source/user_input.c" />
+      <file file_name="../../../Source/user_input.c">
+        <configuration Name="Debug" build_exclude_from_build="No" />
+      </file>
       <file file_name="../../../Source/app_wdt.c" />
       <file file_name="../../../Source/app_wdt.h" />
       <file file_name="../../../Source/app_mesh_message_queue.c" />
@@ -273,6 +288,10 @@
       <file file_name="../../../Source/rtc.h" />
       <file file_name="../../../Source/adc_button.c" />
       <file file_name="../../../Source/adc_button.h" />
+      <file file_name="../../../Source/app_btn.c" />
+      <file file_name="../../../Source/app_btn.h" />
+      <file file_name="../../../Source/lna_pa.c" />
+      <file file_name="../../../Source/lna_pa.h" />
     </folder>
     <folder Name="Mesh_Proxy">
       <file file_name="../../../../../../components/Mesh/mesh_sdk/mesh/gatt/src/mesh_gatt.c" />
@@ -305,11 +324,15 @@
   <configuration
     Name="Release"
     c_preprocessor_definitions="NDEBUG"
-    gcc_optimization_level="Optimize For Size"
+    gcc_optimization_level="Level 2 for size"
     link_time_optimization="No" />
   <configuration
     LIBRARY_IO_TYPE="RTT"
     Name="Debug"
     c_preprocessor_definitions="DEBUG; DEBUG_NRF"
-    gcc_optimization_level="None" />
+    gcc_optimization_level="Level 2 for size" />
+  <configuration
+    Name="Common"
+    gcc_debugging_level="Level 3"
+    gcc_optimization_level="Level 2 balanced" />
 </solution>

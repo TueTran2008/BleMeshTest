@@ -26,6 +26,7 @@ BLE MESH CONFIG AND INITIALIZE
 #include "device_state_manager.h"
 #include "access_config.h"
 #include "nrf_mesh_events.h"
+#include "ad_type_filter.h"
 
 /* Provisioning and configuration */
 #include "mesh_provisionee.h"
@@ -72,6 +73,8 @@ BLE MESH CONFIG AND INITIALIZE
 #include "app_mesh_check_duplicate.h"
 #include "app_mesh_process_data.h"
 #include "ble_uart_service.h"
+#include "lna_pa.h"
+
 
 #define CLIENT   0
 #define SERVER  1
@@ -79,13 +82,20 @@ BLE MESH CONFIG AND INITIALIZE
 #error"Fail BLE CONFIG"
 #endif
 
+#define HW_RF_PA_PIN                23 		//PA RX EN
+#define HW_RF_LNA_PIN               24 		//PA TX EN
+
 #define SDK_COEXIST 1
+
+APP_TIMER_DEF(queue_msg_timer);
 
 #define KEY_LENGHT 16
 /*****************************************************************************
  * Global variables
  *****************************************************************************/
 user_on_off_client_t m_client;
+
+extern uint32_t app_start_flash(app_flash_get_success_cb_t p_callback);
 
 /*****************************************************************************
  * Forward declaration
@@ -129,18 +139,30 @@ static nrf_mesh_evt_handler_t m_mesh_core_event_handler = { .evt_cb = app_mesh_c
 
 static void app_user_onoff_publish_interval_callback(access_model_handle_t model_handel, void *p_self)
 {
-  static uint8_t tick_500ms = 0;
-  if(tick_500ms++ >= 5)
-  {
-    tick_500ms = 0;
-    app_polling_mesh_event();
-  }
-  app_queue_process_polling_message();
+  static uint32_t tick_500ms = 0;
+
+  app_polling_mesh_event();
+  //if(tick_500ms++ >= 50)
+  //{
+  //  //tick_500ms = 0;
+  //  uint8_t  *p_data = "HelloWorld From TueTD\r\n";
+  //  static uint32_t count_time = 0;
+  //  uint32_t status = 0;
+  //  tick_500ms = 0;
+  //  user_on_off_msg_set_t tx_msg_params = {0};
+  //  tx_msg_params.tid = 1;
+  //  tx_msg_params.len = strlen(p_data);
+  //  tx_msg_params.data = p_data;
+
+  //  model_transition_t tx_transtion;
+  //  status = unit_test_model_layer(&m_client, &tx_msg_params,&tx_transtion, 0);
+  //  NRF_LOG_INFO("Publish time:%u\r\n", count_time++);
+  //  if(status)
+  //  {
+  //  }    
+  //}
+  //app_queue_process_polling_message();
 }
-
-
-
-
 
 static void unicast_address_print(void)
 {
@@ -149,12 +171,21 @@ static void unicast_address_print(void)
    __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Node Address: 0x%04x \n", node_address.address_start);
 }
 
+static void queue_polling_timeout(void *p_arg)
+{
+  app_queue_process_polling_message();
+  //test
+}
+
 static void start(void)
 {
 
     mesh_app_uuid_print(nrf_mesh_configure_device_uuid_get());
 
     ERROR_CHECK(mesh_stack_start());
+    APP_ERROR_CHECK(app_timer_create(&queue_msg_timer, APP_TIMER_MODE_REPEATED, queue_polling_timeout));
+
+    APP_ERROR_CHECK(app_timer_start(queue_msg_timer, 1000, NULL));
 
 }
 
@@ -173,7 +204,17 @@ static void models_init_cb(void)
   xSystem.client_model = m_client.model_handle;
 }
 
-
+static void scanner_adv_data_callback(const nrf_mesh_adv_packet_rx_data_t *p_rx_data)
+{
+  //p_rx_data->
+  //NRF_LOG_INFO("Scanner data RSSI: %d", p_rx_data->);
+  uint8_t *p_data = NULL;
+  p_data = app_filter_sensor_value(p_rx_data->p_payload, p_rx_data->length);
+  if(p_data != NULL)
+  {
+    app_handle_sensor_data(p_data);
+  }
+}
 static void config_server_evt_cb(const config_server_evt_t * p_evt)
 {
   if(p_evt->type == CONFIG_SERVER_EVT_NODE_RESET)
@@ -181,8 +222,6 @@ static void config_server_evt_cb(const config_server_evt_t * p_evt)
     node_reset();
   }
 }
-
-extern uint32_t app_start_flash(app_flash_get_success_cb_t p_callback);
 static void app_mesh_core_event_cb(const nrf_mesh_evt_t * p_evt)
 {
     /* USER_NOTE: User can insert mesh core event processing here */
@@ -202,6 +241,9 @@ static void app_mesh_core_event_cb(const nrf_mesh_evt_t * p_evt)
                     __LOG(LOG_SRC_APP, LOG_LEVEL_INFO, "Publish Period: %d\n", status);
                     app_ble_load_config_paramter();
                     app_self_provision(m_client.model_handle, xSystem.network_info.app_key, xSystem.network_info.net_key, xSystem.network_info.unicast_address);
+                    xSystem.status.init_done = true;
+                    bearer_adtype_add(BLE_GAP_AD_TYPE_FLAGS);
+                    nrf_mesh_rx_cb_set(scanner_adv_data_callback);
                 }
             }
             break;
@@ -272,25 +314,23 @@ void ble_mesh_stack_initialize(void)
 
   conn_params_init();
  #endif
+ // app_lna_pa_enable_in_ble_stack();
   mesh_init();
+  //app_lna_pa_enable_module();
 }
 
 void ble_mesh_start()
 {
   start();
 }
-
 static void gateway_switch_info()
 {
   mesh_gateway_transfer_t gateway_network;
 }
-
 void app_mesh_reprovisioning()
 {
-
 }
-
-/** @brief    Send Alarm Control Message to Lamp
+/** @brief  Send Alarm Control Message to Lamp
  *
  * @param[out]    
  * @param[in]   
@@ -311,7 +351,6 @@ uint32_t app_mesh_publish_ping_msg(uint16_t address)
   else
     mesh_gateway_tx.msg_type = APP_MSG_TYPE_PING_NODE;
   mesh_gateway_tx.value.name.src_addr = address;
-
   app_mesh_tx_evt_t tx_msg = {0};
   tx_msg.id = APP_MESH_ID_PUBLISH;
   memcpy(&tx_msg.data[0], &xSystem.flash_parameter.pair_information.topic_all, 2);
@@ -403,7 +442,7 @@ static void app_polling_mesh_event()
   app_mesh_tx_evt_t mesh_tx_evt = {0};
   if(!app_mesh_tx_evt_message_queue_pop(&mesh_tx_evt))
   {
-    NRF_LOG_INFO("Get Queue message from publish Tx mesh\r\n");
+    //NRF_LOG_INFO("Get Queue message from publish Tx mesh\r\n");
     if(mesh_tx_evt.id == APP_MESH_ID_PUBLISH)
     {
        /*Determine Publish Topic*/
@@ -422,7 +461,10 @@ static void app_polling_mesh_event()
 
        model_transition_t tx_transtion;
        status = user_on_off_client_set_unack(&m_client, &tx_msg_params,&tx_transtion, APP_UNACK_MSG_REPEAT_COUNT);
-       NRF_LOG_INFO("Periodic publish mesh message to 0x%04x - error code: %d", publish_add, status);
+       if(status)
+       {
+        NRF_LOG_INFO("Periodic publish mesh message to 0x%04x - error code: %d", publish_add, status);
+       }
     }
     else if(mesh_tx_evt.id == APP_MESH_ID_DISABLE)
     {
@@ -433,11 +475,6 @@ static void app_polling_mesh_event()
     }
   }
 }
-
-
-
-
-
 /** @brief    Handle Message from Opcode BEACON_OPCODE
  *
  * @param[out]    
@@ -485,10 +522,8 @@ static void app_user_onoff_client_beacon_cb(const user_on_off_client_t * p_self,
   return;
 }
 /** @brief    Handle Message from Opcode OTHER_DEVICE_OPCODE
- *
  * @param[out]    
  * @param[in]   
- *
  * @retval     
  */
 static void app_user_onoff_client_other_device_cb(const user_on_off_client_t * p_self,
@@ -525,10 +560,8 @@ static void app_user_onoff_client_other_device_cb(const user_on_off_client_t * p
   }
 }
 /** @brief    Handle Message from Opcode OTHER_DEVICE_OPCODE
- *
  * @param[out]    
  * @param[in]   
- *
  * @retval     
  */
 static void app_user_onoff_client_transaction_status_callback(access_model_handle_t model_handle, void *p_args, access_reliable_status_t status)
@@ -545,7 +578,8 @@ static void app_user_onoff_client_status_cb(const user_on_off_client_t * p_self,
   tid_arrive.tid = p_status->tid;
   tid_arrive.unicast_addr = p_meta->src.value;
   app_alarm_message_structure_t m_alarm_sos;
-  
+  static uint32_t number_of_received = 0;
+  NRF_LOG_INFO("Received time :%d", number_of_received++);
   if (!app_mesh_tid_is_duplicate(&tid_arrive))
   {
     gw_mesh_msq_t rx_gw_msg;
@@ -575,12 +609,9 @@ static void app_user_onoff_client_status_cb(const user_on_off_client_t * p_self,
     NRF_LOG_WARNING("Duplicate Data\r\n");
   }
 }
-
-
 /***********************************************************************/
 /*
   MESH RESET STACK IMPLIMENTATION
-
 */
 APP_TIMER_DEF(app_timer_leave_mesh_network);
 static void do_reset()
@@ -592,7 +623,7 @@ static void do_reset()
     if (device_reset == false)
     {
         device_reset = true;
-        mesh_stack_config_clear();
+        //mesh_stack_config_clear();
         mesh_stack_device_reset();
     }
     else
@@ -601,12 +632,11 @@ static void do_reset()
         while(1);
     }
 }
-
+/*
+  @brief Clear all information of the mesh network
+*/
 void application_leave_mesh_network()
 {
-//    if (!mesh_stack_is_device_provisioned())
-//        return;
-
     uint32_t error_code;
 
     error_code = app_timer_create(&app_timer_leave_mesh_network,
@@ -625,8 +655,7 @@ void application_leave_mesh_network()
 void mesh_core_clear(void *arg)
 {
   NRF_LOG_INFO("----- Mesh reset  -----\n");
-	/* This function may return if there are ongoing flash operations. */
-	//    mesh_stack_device_reset();
+  /* This function may return if there are ongoing flash operations. */
   application_leave_mesh_network();
 }
 

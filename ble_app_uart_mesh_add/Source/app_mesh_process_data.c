@@ -5,6 +5,10 @@
 #include "nrf_log_ctrl.h"
 #include "ble_config.h"
 #include "led_driver.h"
+#include "rtc.h"
+#include "led_driver.h"
+#include "nrf_gpiote.h"
+#include "nrfx_gpiote.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -17,6 +21,8 @@
 #define NODE_INVALID_INDEX 0xFF
 
 #define ALARM_NODE_TIMEOUT 45000
+
+#define MIN_SECOND_BETWEEN_TWO_TIME_ALARM (uint32_t)10000
 /*****************************************************************************
  * Structure Decleration
  *****************************************************************************/
@@ -29,13 +35,18 @@ typedef struct
   uint8_t is_alarm;     
   uint8_t is_valid_data;
 }node_alarm_store_t;
-
 /*****************************************************************************
  * Privates Variables
  *****************************************************************************/
 static node_alarm_store_t m_list_alarm[MAX_ALARM_SUPPORT] = {0};
 uint16_t m_last_alarm_addr = 0xFFFF;
-
+static uint32_t m_set_speaker_tick = 0;
+static uint32_t m_last_time_recv_alarm = 0;
+static bool m_last_state_is_alarm = false;
+static uint32_t m_last_sec_recv_ack = 0;
+static uint32_t m_nack_count = 0;
+static bool do_alarm = false;
+static bool m_set_speaker_immediately = false;
 /*****************************************************************************
  * Forward Decleration
  *****************************************************************************/
@@ -46,8 +57,10 @@ static void app_queue_mesh_insert_node(uint8_t *mac,
                                         uint8_t alarm_type,
                                         uint8_t *custom_data,
                                         uint8_t custom_data_size);
+static void gw_polling_for_ack(bool alarm);
 static void no_alarm_anymore(void);
 static bool node_detect_available_alarm();
+static inline void gw_set_state_wait_for_ack(uint32_t ack_cnt);
 
 /*****************************************************************************
  * Implementation
@@ -62,22 +75,43 @@ static bool node_detect_available_alarm();
 static void process_sos_data(gw_mesh_msq_t *p_data)
 {
    app_alarm_message_structure_t * alarm_struct_sos = (app_alarm_message_structure_t*) p_data->data;
+
    if(is_msg_alarm(alarm_struct_sos->msg_type))
    {
+      
+      //NRF_LOG_INFO("Time between 2 times alarm: %u", nrf_get_tick() - m_set_speaker_tick);
       NRF_LOG_ERROR("Alarm sos message type:%u\r\n",alarm_struct_sos->msg_type);
       /*LOG INFOMATION*/
       m_last_alarm_addr = p_data->mesh_id;
       if(xSystem.flash_parameter.config_parameter.AlarmConfig.Name.EnableSyncAlarm
-         || alarm_struct_sos->dev_type == APP_DEVICE_GW)
+         || alarm_struct_sos->dev_type == APP_DEVICE_GW
+         || m_set_speaker_immediately)
       {
-
-        /*Set Alarm Lamp on the alarm's source*/
-        app_mesh_publish_set_lamp(p_data->mesh_id, true);
-
-        /*Wait for ACK*/
-        app_mesh_publish_set_sos_ack();
-        /*Set ACK*/
-        app_queue_mesh_insert_node(p_data->mac, alarm_struct_sos, 1, NULL, 0);
+        if(((nrf_get_tick() - m_set_speaker_tick) > MIN_SECOND_BETWEEN_TWO_TIME_ALARM)
+          || m_set_speaker_tick == 0
+          || m_last_state_is_alarm == false
+            /*((nrf_get_tick() - m_set_speaker_tick) >= 10000) || m_set_speaker_tick == 0 || m_last_state_is_alarm == false*/)
+        {
+          m_last_state_is_alarm = true;
+          xSystem.last_time_is_alarm = true;
+          do_alarm = true;
+          /*Set Alarm Lamp on the alarm's source*/
+          app_mesh_publish_set_lamp(p_data->mesh_id, true);
+          NRF_LOG_WARNING("***********Set Speaker************\r\n");
+          /*Wait for ACK*/
+          nrfx_gpiote_out_set(SFUL01_LED_ALARM_PIN);
+          /*Set ACK*/
+          app_queue_mesh_insert_node(p_data->mac, alarm_struct_sos, 1, NULL, 0);
+          m_set_speaker_tick = nrf_get_tick();
+          m_set_speaker_immediately = false;
+          gw_set_state_wait_for_ack(100);
+          app_mesh_publish_set_sos_ack();
+        }
+      }
+      else
+      {
+        
+      }
         if(alarm_struct_sos->dev_type != APP_DEVICE_GW)
         {
           node_alarm_store_t dev;
@@ -91,17 +125,20 @@ static void process_sos_data(gw_mesh_msq_t *p_data)
             NRF_LOG_ERROR("Device alarm already existed in the list\r\n");
           }
         }
-      }
-
+      
+      m_last_time_recv_alarm = nrf_get_tick();
+  
    }/*Set the System syate*/
    else if(alarm_struct_sos->msg_type == APP_MSG_TYPE_KEEP_ALIVE)
    {
-     //TODO Update Note information
+     //NRF_LOG_INFO(")
      app_queue_mesh_insert_node(p_data->mac, alarm_struct_sos, 0, NULL, 0);
    }
    else if(alarm_struct_sos->msg_type == APP_MSG_TYPE_ACK)
    {
       //TODO Reset ack
+        NRF_LOG_INFO("Speaker ack\r\n");
+        m_last_sec_recv_ack = nrf_get_tick();
    }
    /*Ðây là tru?ng h?p node g?i tr?ng thái không báo d?ng n?a*/
    else if(alarm_struct_sos->dev_type != APP_DEVICE_GW &&
@@ -109,6 +146,7 @@ static void process_sos_data(gw_mesh_msq_t *p_data)
    {
     //TODO Reset Alarm cache 
     app_queue_mesh_insert_node(p_data->mac, alarm_struct_sos, 0, NULL, 0);
+
     if(alarm_struct_sos->dev_type != APP_DEVICE_GW)
     {
       node_alarm_store_t dev;
@@ -117,6 +155,7 @@ static void process_sos_data(gw_mesh_msq_t *p_data)
       memcpy(dev.mac_add, p_data->mac, 6);
       dev.mesh_id = p_data->mesh_id;
       dev.is_valid_data = 0;
+      no_alarm_anymore();
       if(node_alarm_find_and_write(&dev) == NODE_INVALID_INDEX)
       {
         NRF_LOG_ERROR("Device alarm already existed in the list\r\n");
@@ -128,6 +167,7 @@ static void process_sos_data(gw_mesh_msq_t *p_data)
            alarm_struct_sos->msg_type == APP_MSG_TYPE_NO_ALARM)
    {
     //TODO Reset Alarm cach
+      no_alarm_anymore();
       app_queue_mesh_insert_node(p_data->mac, alarm_struct_sos, 0, NULL, 0);
    }
    else
@@ -257,7 +297,7 @@ static int8_t node_alarm_find_and_write(node_alarm_store_t *alarm_node)
       local_node.fw_verison = alarm_sos_structure->fw_version;
       local_node.smoke_value = alarm_sos_structure->reserve.temperature_smoke.smoke_alarm;
       local_node.teperature_value = alarm_sos_structure->reserve.temperature_smoke.temperature;
-     // local_node.timestamp = Get RTC Value
+      local_node.timestamp = RTC_getcounter();
       local_node.propreties.Name.alarmState = alarm_type & 0x01;
       local_node.propreties.Name.deviceType = alarm_sos_structure->dev_type;
       local_node.custom_data.IsCustom = 0; /*Khong phai custom data*/
@@ -292,6 +332,14 @@ static int8_t node_alarm_find_and_write(node_alarm_store_t *alarm_node)
             break;         
            case APP_DEVICE_GW:
             xSystem.alarm_value.Name.ALARM_CENTER_BUTTON = 1;
+            if(alarm_sos_structure->msg_type == APP_MSG_TYPE_NO_ALARM)
+            {
+              NRF_LOG_ERROR("&&&&&&OFF Central alarm*******/");
+            }
+            else
+            {
+              NRF_LOG_ERROR("&&&& ON Central Alarm*****/");
+            }
             /*Gat way thi khong publish "D:*/
             break;
          }
@@ -306,7 +354,7 @@ static int8_t node_alarm_find_and_write(node_alarm_store_t *alarm_node)
         local_node.propreties.Name.deviceType = APP_DEVICE_POWER_METER;
         local_node.custom_data.Len = custom_data_size;
         local_node.custom_data.IsCustom = 1;
-        //local_node.timestamp 
+        local_node.timestamp = RTC_getcounter(); 
         local_node.propreties.Name.isNewMsg = 1;
         local_node.propreties.Name.isPairMsg = 0;
       }
@@ -322,6 +370,8 @@ static int8_t node_alarm_find_and_write(node_alarm_store_t *alarm_node)
     {
       if(memcmp(&xSystem.Node_list[index].device_mac, mac, 6) == 0 )
       {
+        /**/
+        NRF_LOG_ERROR(mac, 6);
         memcpy(&xSystem.Node_list[index], &local_node, sizeof(app_beacon_data_t));
         xSystem.Node_list[index].is_data_valid = 1;
         if(alarm_sos_structure->dev_type == APP_DEVICE_SENSOR_TEMP_SMOKE)
@@ -355,12 +405,15 @@ static void no_alarm_anymore(void)
     }
     else
     {
-        NRF_LOG_INFO("Node alarm still exist\r\n");
+        //NRF_LOG_INFO("Node alarm still exist\r\n");
         return;
     }
+    nrfx_gpiote_out_set(SFUL01_LED_ALARM_PIN);
     if(xSystem.flash_parameter.config_parameter.AlarmConfig.Name.EnableSyncAlarm)
     {
       app_mesh_publish_set_lamp(m_last_alarm_addr, 0);
+      gw_set_state_wait_for_ack(30);
+      m_set_speaker_immediately = true;
     }
     for(uint32_t i = 0; i < APP_MAX_BEACON; i++)
     {
@@ -368,7 +421,10 @@ static void no_alarm_anymore(void)
       xSystem.Node_list[i].propreties.Name.isNewMsg = 0;
       xSystem.Node_list[i].is_data_valid = 0;
     }
+    m_last_state_is_alarm = false;
+    do_alarm = false;
     xSystem.alarm_value.Value = 0;
+    xSystem.last_time_is_alarm = false;
 }
 
 uint8_t app_queue_mesh_read_node(app_beacon_data_t *p_beacon)
@@ -393,16 +449,18 @@ uint8_t app_queue_mesh_read_node(app_beacon_data_t *p_beacon)
       return node_index;
     }
   }
-  p_beacon = NULL;
+ // p_beacon = NULL;
   NRF_LOG_ERROR("Beacon list no data\r\n");
   return 0xFF;
 }
+
+
 void app_queue_process_polling_message()
 {
   gw_mesh_msq_t rx_mesh;
   if(!app_mesh_gw_queue_pop(&rx_mesh))
   {
-    NRF_LOG_INFO("Get message from queue to process\r\n");
+    //NRF_LOG_INFO("Get message from queue to process\r\n");
     if(rx_mesh.msg_id == GW_MESH_MSQ_ID_ALARM_SYSTEM)
     {
       process_sos_data(&rx_mesh);
@@ -417,7 +475,45 @@ void app_queue_process_polling_message()
       NRF_LOG_ERROR("unknown message ID:%d at :%s\r\n",__FUNCTION__);
     }
   }
-  else
+  if(xSystem.alarm_value.Value)
   {
+    if(nrf_get_tick() - m_last_time_recv_alarm >= MIN_SECOND_BETWEEN_TWO_TIME_ALARM
+       && xSystem.alarm_value.Name.ALARM_CENTER_BUTTON == 0)
+    {
+      no_alarm_anymore();
+      m_set_speaker_tick = 0;
+    }
   }
+  gw_polling_for_ack(do_alarm);
 }
+static inline void gw_set_state_wait_for_ack(uint32_t ack_cnt)
+{
+    m_nack_count = ack_cnt;
+}
+
+static void gw_polling_for_ack(bool alarm)
+{
+    if (m_nack_count)
+    {
+        if (nrf_get_tick() - m_last_sec_recv_ack > MIN_SECOND_BETWEEN_TWO_TIME_ALARM)
+        {
+            m_nack_count--;
+            m_last_sec_recv_ack = nrf_get_tick();
+            NRF_LOG_INFO("Set speaker alarm %s remain [%d] times\r\n", alarm ? "true" : "false", m_nack_count);
+            if(alarm)
+            { 
+                if (xSystem.flash_parameter.config_parameter.AlarmConfig.Name.EnableSyncAlarm
+                    ||xSystem.alarm_value.Name.ALARM_CENTER_BUTTON)
+                { 
+                      app_mesh_publish_set_lamp(m_last_alarm_addr, 1);
+                }
+            }
+            else
+            {
+                app_mesh_publish_set_lamp(m_last_alarm_addr, 0);   
+            }
+            m_set_speaker_tick = nrf_get_tick();
+        }
+    }
+}
+/*Gateway ACK Implementation*/
